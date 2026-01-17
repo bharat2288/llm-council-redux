@@ -3,54 +3,12 @@
 .env.local
 .env.*.local
 
-# Karpathy's original implementation (kept locally, not published)
-Karpathy/
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 .venv/
 venv/
-ENV/
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Build outputs
-dist/
-dist-ssr/
-*.local
-.vite/
-
-# IDE and editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
 
 # Claude Code artifacts
 .claude/
@@ -59,10 +17,5 @@ tmpclaude-*/
 # Windows artifacts
 nul
 
-# Data files (local storage)
-data/
+# Local data
 council_history.json
-
-# Logs
-*.log
-logs/

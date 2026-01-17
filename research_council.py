@@ -536,6 +536,76 @@ don't shy away from nuanced or contrarian positions if warranted."""
                       for k, v in self.config.items()}
         }
 
+    async def query_single(
+        self,
+        query: str,
+        context: str = None,
+        model: str = "anthropic"
+    ) -> dict:
+        """
+        Query a single model (no synthesis).
+
+        Args:
+            query: The question or topic
+            context: Optional additional context
+            model: Provider name ('anthropic', 'openai', 'openrouter')
+
+        Returns:
+            dict with content, usage, and metadata
+        """
+        self._log(f"Querying single model ({model}): {query[:100]}...")
+
+        # Build prompt
+        prompt = f"""Answer the following query thoughtfully and thoroughly.
+
+QUERY:
+{query}
+
+{f'CONTEXT:{chr(10)}{context}' if context else ''}
+
+Provide a substantive, well-reasoned response."""
+
+        system_prompt = """You are a helpful AI assistant. Provide thorough,
+accurate, and insightful responses to queries."""
+
+        # Call the appropriate model
+        async with aiohttp.ClientSession() as session:
+            if model == "anthropic":
+                result = await self._call_anthropic(session, prompt, system_prompt)
+            elif model == "openai":
+                result = await self._call_openai(session, prompt, system_prompt)
+            elif model == "openrouter":
+                result = await self._call_openrouter(session, prompt, system_prompt)
+            else:
+                return {
+                    "query": query,
+                    "success": False,
+                    "error": f"Unknown model: {model}"
+                }
+
+        # Calculate usage/cost
+        usage = None
+        if result.get("success") and result.get("usage"):
+            normalized = self._normalize_usage(model, result["usage"])
+            cost = self._calculate_cost(model, result["usage"])
+            usage = {
+                "input_tokens": normalized["input_tokens"],
+                "output_tokens": normalized["output_tokens"],
+                "cost_usd": round(cost, 6)
+            }
+            self._log(f"Tokens: {normalized['input_tokens']} in, {normalized['output_tokens']} out, Cost: ${cost:.4f}")
+
+        return {
+            "query": query,
+            "context": context,
+            "model": model,
+            "content": result.get("content"),
+            "success": result.get("success", False),
+            "error": result.get("error"),
+            "timestamp": datetime.now().isoformat(),
+            "usage": usage
+        }
+
     async def deliberate_streaming(
         self,
         query: str,

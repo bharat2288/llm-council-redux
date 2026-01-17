@@ -242,6 +242,34 @@ def api_deliberate():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/query', methods=['POST'])
+def api_single_query():
+    """Query a single model (no synthesis)."""
+    data = request.get_json()
+
+    if not data or 'query' not in data:
+        return jsonify({"error": "Missing 'query' field"}), 400
+
+    if 'model' not in data:
+        return jsonify({"error": "Missing 'model' field"}), 400
+
+    query = data['query']
+    context = data.get('context')
+    model = data['model']
+
+    if model not in ['anthropic', 'openai', 'openrouter']:
+        return jsonify({"error": f"Invalid model: {model}"}), 400
+
+    try:
+        result = run_async(council.query_single(query, context, model))
+        # Auto-save to history with model name
+        history_id = add_to_history(result, mode=f'single-{model}')
+        result['history_id'] = history_id
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/deliberate/stream', methods=['POST'])
 def api_deliberate_stream():
     """Run a deliberation with SSE streaming progress."""

@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Council</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.cdnfonts.com/css/geist" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* ==========================================
+               4-Level Elevation
+               ========================================== */
+            --bg-base: #0c0f0d;
+            --bg-surface: #1a1d1b;
+            --bg-raised: #252a27;
+            --bg-elevated: #323832;
+
+            /* Border */
+            --border-subtle: #2a2f2c;
+            --border-default: #3a3f3c;
+            --border-emphasis: #4a4f4c;
+
+            /* Text */
+            --text-primary: #fafafa;
+            --text-secondary: #a8a8a8;
+            --text-tertiary: #787878;
+            --text-muted: #585858;
+
+            /* Accent — Camel */
+            --accent-camel: #d4a574;
+            --accent-camel-hover: #c9956c;
+            --accent-camel-subtle: #2d251f;
+
+            /* Accent — Terracotta */
+            --accent-terra: #cd8264;
+            --accent-terra-hover: #b87254;
+            --accent-terra-subtle: #2d211d;
+
+            /* Semantic */
+            --semantic-success: #7ab07a;
+            --semantic-error: #cd6464;
+
+            /* Typography */
+            --font-base: 'Geist', 'Plus Jakarta Sans', -apple-system, sans-serif;
+            --font-display: 'Fraunces', Georgia, serif;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25);
+            --shadow-lg: 0 12px 28px rgba(0,0,0,0.45), 0 8px 12px rgba(0,0,0,0.35);
+            --shadow-glow-camel: 0 0 24px rgba(212, 165, 116, 0.2);
+            --shadow-glow-success: 0 0 10px rgba(122, 176, 122, 0.5);
+
+            /* Spacing */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-6: 24px;
+            --space-8: 32px;
+            --space-10: 40px;
+            --space-12: 48px;
+
+            /* Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 10px;
+            --radius-xl: 12px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-base);
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-base);
+            min-height: 100vh;
+            padding: var(--space-12);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ==========================================
+           LABELS (12px pattern)
+           ========================================== */
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+        }
+
+        .label-section {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent-camel);
+        }
+
+        .label .hint {
+            font-weight: 400;
+            letter-spacing: 0;
+            text-transform: none;
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+
+        /* ==========================================
+           HEADER
+           ========================================== */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-12);
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-4);
+            position: relative;
+        }
+
+        .title {
+            font-family: var(--font-display);
+            font-size: 52px;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            line-height: 1;
+            position: relative;
+        }
+
+        /* Hand-drawn constellation */
+        .constellation {
+            position: absolute;
+            top: -12px;
+            right: -48px;
+            width: 44px;
+            height: 44px;
+            opacity: 0.45;
+        }
+
+        .constellation circle {
+            fill: var(--accent-camel);
+        }
+
+        .constellation path {
+            stroke: var(--accent-camel);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            fill: none;
+        }
+
+        .tagline {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            align-self: flex-end;
+            margin-bottom: 10px;
+        }
+
+        /* Status bar with model selector */
+        .status-bar {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+        }
+
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .model-selector:hover {
+            border-color: var(--border-default);
+            color: var(--text-primary);
+            background: var(--bg-raised);
+        }
+
+        .model-selector.active {
+            background: linear-gradient(135deg, var(--accent-camel), var(--accent-camel-hover));
+            color: var(--bg-base);
+            border-color: transparent;
+            box-shadow: var(--shadow-sm), var(--shadow-glow-camel);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-dot.success {
+            background: var(--semantic-success);
+            box-shadow: var(--shadow-glow-success);
+        }
+
+        .status-dot.failed {
+            background: var(--semantic-error);
+        }
+
+        .model-selector.active .status-dot {
+            background: var(--bg-base);
+            opacity: 0.5;
+            box-shadow: none;
+        }
+
+        .btn-ghost {
+            padding: var(--space-2) var(--space-4);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--border-default);
+            color: var(--text-primary);
+            background: var(--bg-raised);
+        }
+
+        /* ==========================================
+           MAIN CARD
+           ========================================== */
+        .main-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-5);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        /* Mode toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: var(--bg-base);
+            border-radius: 12px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .mode-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            font-family: var(--font-base);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--text-tertiary);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, var(--accent-camel), var(--accent-camel-hover));
+            color: var(--bg-base);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3), var(--shadow-glow-camel);
+        }
+
+        .mode-btn:not(.active):hover {
+            color: var(--text-secondary);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: var(--space-6);
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: var(--space-3);
+        }
+
+        /* Inputs use BASE level (punch through) */
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-base);
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: all 0.15s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            border-color: var(--accent-camel);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 3px var(--accent-camel-subtle);
+        }
+
+        textarea::placeholder, input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .textarea-lg { min-height: 120px; }
+        .textarea-md { min-height: 80px; }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: var(--space-3);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .btn-primary {
+            padding: var(--space-3) var(--space-6);
+            background: linear-gradient(135deg, var(--accent-camel), var(--accent-camel-hover));
+            border: none;
+            border-radius: var(--radius-lg);
+            color: var(--bg-base);
+            font-family: var(--font-base);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-md), var(--shadow-glow-camel);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(212, 165, 116, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            padding: var(--space-3) var(--space-6);
+            background: var(--bg-raised);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            color: var(--text-secondary);
+            font-family: var(--font-base);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border-emphasis);
+        }
+
+        /* ==========================================
+           LOADING
+           ========================================== */
+        .loading {
+            display: none;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-10);
+            margin-bottom: var(--space-6);
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .loading.visible { display: block; }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-8);
+        }
+
+        .progress-stages {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-8);
+        }
+
+        .progress-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .stage-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            background: var(--bg-raised);
+            border: 2px solid var(--border-default);
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .stage-icon.active {
+            background: var(--accent-camel-subtle);
+            border-color: var(--accent-camel);
+            color: var(--accent-camel);
+            box-shadow: var(--shadow-glow-camel);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .stage-icon.complete {
+            background: rgba(122, 176, 122, 0.15);
+            border-color: var(--semantic-success);
+            color: var(--semantic-success);
+            box-shadow: var(--shadow-glow-success);
+        }
+
+        .stage-icon.failed {
+            background: rgba(205, 100, 100, 0.15);
+            border-color: var(--semantic-error);
+            color: var(--semantic-error);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .stage-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .stage-status {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Error */
+        .error-box {
+            background: rgba(205, 100, 100, 0.1);
+            border: 1px solid var(--semantic-error);
+            color: #e5a5a5;
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-4);
+            display: none;
+            font-size: 14px;
+        }
+
+        .error-box.visible { display: block; }
+
+        /* ==========================================
+           OUTPUT SECTION
+           ========================================== */
+        .output-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            display: none;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        .output-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        .output-section.visible { display: block; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: var(--space-1);
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-4);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .tab {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: var(--font-base);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+        }
+
+        .tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            color: var(--accent-camel);
+            border-bottom-color: var(--accent-camel);
+        }
+
+        .tab.synthesis {
+            color: var(--semantic-success);
+        }
+
+        .tab.synthesis.active {
+            border-bottom-color: var(--semantic-success);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active { display: block; }
+
+        /* Synthesis box */
+        .synthesis-box {
+            background: rgba(122, 176, 122, 0.08);
+            border: 1px solid rgba(122, 176, 122, 0.25);
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+        }
+
+        .synthesis-box h3 {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--semantic-success);
+            margin-bottom: var(--space-4);
+        }
+
+        /* Perspective boxes */
+        .perspective {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+        }
+
+        .perspective-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .perspective h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .perspective .model-tag {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            background: var(--accent-camel-subtle);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            color: var(--accent-camel);
+        }
+
+        .perspective .model-tag.failed {
+            background: rgba(205, 100, 100, 0.15);
+            color: var(--semantic-error);
+        }
+
+        /* Content */
+        .content-wrapper {
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: var(--space-1) var(--space-2);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-tertiary);
+            transition: all 0.15s;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent-camel);
+            color: var(--accent-camel);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--semantic-success);
+            color: var(--semantic-success);
+        }
+
+        /* Markdown content */
+        .content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        .content h1, .content h2, .content h3, .content h4 {
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        .content h1 { font-size: 1.4em; }
+        .content h2 { font-size: 1.2em; }
+        .content h3 { font-size: 1.1em; }
+
+        .content p { margin: 0.8em 0; }
+
+        .content ul, .content ol {
+            margin: 0.8em 0;
+            padding-left: 1.5em;
+        }
+
+        .content li { margin: 0.3em 0; }
+
+        .content strong { font-weight: 600; }
+
+        .content blockquote {
+            border-left: 3px solid var(--accent-camel);
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            background: var(--bg-base);
+            color: var(--text-secondary);
+        }
+
+        .content code {
+            background: var(--bg-base);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+            font-size: 0.9em;
+            color: var(--accent-camel);
+        }
+
+        .content pre {
+            background: var(--bg-base);
+            padding: 1em;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            margin: 1em 0;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .content pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+
+        .content hr {
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+            margin: 1.5em 0;
+        }
+
+        .content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        .content th, .content td {
+            border: 1px solid var(--border-default);
+            padding: var(--space-2) var(--space-3);
+            text-align: left;
+        }
+
+        .content th {
+            background: var(--bg-base);
+            font-weight: 600;
+        }
+
+        /* Meta info */
+        .meta-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: var(--space-6);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* Usage box */
+        .usage-box {
+            background: var(--bg-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-top: var(--space-6);
+        }
+
+        .usage-box h4 {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--accent-camel);
+            margin-bottom: var(--space-3);
+        }
+
+        .usage-table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .usage-table th {
+            text-align: left;
+            padding: var(--space-2) var(--space-3);
+            background: var(--bg-base);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-default);
+        }
+
+        .usage-table td {
+            padding: var(--space-2) var(--space-3);
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .usage-table .provider-col {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .usage-table .role-col {
+            color: var(--text-tertiary);
+        }
+
+        .usage-table .number-col {
+            text-align: right;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+            font-size: 11px;
+        }
+
+        .usage-table .total-row td {
+            border-top: 2px solid var(--border-default);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .usage-total-cost {
+            font-size: 16px;
+            color: var(--accent-camel);
+            font-weight: 700;
+        }
+
+        /* ==========================================
+           FILE UPLOAD
+           ========================================== */
+        .upload-zone {
+            border: 2px dashed var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-base);
+            margin-bottom: var(--space-4);
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-terra);
+            background: var(--accent-terra-subtle);
+        }
+
+        .upload-zone.drag-over {
+            border-color: var(--accent-terra);
+            background: var(--accent-terra-subtle);
+        }
+
+        .upload-zone input[type="file"] { display: none; }
+
+        .upload-icon {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto var(--space-3);
+            border-radius: var(--radius-lg);
+            background: var(--bg-raised);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-1);
+        }
+
+        .upload-link {
+            color: var(--accent-terra);
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Hand-drawn swoosh in upload zone */
+        .upload-swoosh {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            width: 32px;
+            height: 24px;
+            opacity: 0.35;
+        }
+
+        .upload-swoosh path {
+            fill: none;
+            stroke: var(--accent-terra);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .uploaded-files { margin-bottom: var(--space-4); }
+
+        .uploaded-file {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--accent-camel-subtle);
+            border: 1px solid var(--accent-camel);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            margin-bottom: var(--space-2);
+            font-size: 13px;
+        }
+
+        .uploaded-file .file-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .uploaded-file .file-name {
+            font-weight: 500;
+            color: var(--accent-camel);
+        }
+
+        .uploaded-file .file-size {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .uploaded-file .remove-file {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: var(--space-1);
+            line-height: 1;
+            transition: color 0.15s;
+        }
+
+        .uploaded-file .remove-file:hover {
+            color: var(--semantic-error);
+        }
+
+        /* ==========================================
+           HISTORY PANEL
+           ========================================== */
+        .history-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            display: none;
+        }
+
+        .history-overlay.open { display: block; }
+
+        .history-panel {
+            position: fixed;
+            top: 0;
+            right: -420px;
+            width: 420px;
+            height: 100vh;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-subtle);
+            z-index: 999;
+            transition: right 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+        }
+
+        .history-panel.open { right: 0; }
+
+        .history-header {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .history-close {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: var(--space-1);
+            line-height: 1;
+        }
+
+        .history-close:hover { color: var(--text-primary); }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-4);
+        }
+
+        .history-item {
+            padding: var(--space-4);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-3);
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--bg-raised);
+        }
+
+        .history-item:hover {
+            border-color: var(--accent-camel);
+        }
+
+        .history-item.active {
+            border-color: var(--accent-camel);
+            background: var(--accent-camel-subtle);
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-2);
+        }
+
+        .history-item-mode {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+        }
+
+        .history-item-mode.deliberate {
+            background: var(--accent-camel-subtle);
+            color: var(--accent-camel);
+        }
+
+        .history-item-mode.theorize {
+            background: var(--accent-terra-subtle);
+            color: var(--accent-terra);
+        }
+
+        .history-item-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .history-item-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: var(--space-1);
+            line-height: 1.3;
+        }
+
+        .history-item-query {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            line-height: 1.4;
+            margin-bottom: var(--space-2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .history-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item-cost {
+            font-size: 12px;
+            color: var(--accent-camel);
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .history-item-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            padding: var(--space-1);
+        }
+
+        .history-item-delete:hover { color: var(--semantic-error); }
+
+        .history-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: var(--space-10);
+            font-size: 14px;
+        }
+
+        /* ==========================================
+           RESPONSIVE
+           ========================================== */
+        @media (max-width: 768px) {
+            body { padding: var(--space-4); }
+
+            header {
+                flex-direction: column;
+                gap: var(--space-4);
+            }
+
+            .title { font-size: 36px; }
+
+            .constellation {
+                right: -36px;
+                width: 36px;
+                height: 36px;
+            }
+
+            .status-bar {
+                flex-wrap: wrap;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-4);
+            }
+
+            .mode-toggle { width: 100%; }
+            .mode-btn { flex: 1; text-align: center; }
+
+            .progress-stages {
+                flex-wrap: wrap;
+                gap: var(--space-4);
+            }
+
+            .stage-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 14px;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+                gap: var(--space-1);
+            }
+
+            .history-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- History Overlay -->
+    <div class="history-overlay" id="historyOverlay" onclick="toggleHistory()"></div>
+
+    <!-- History Panel -->
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <h3>History</h3>
+            <button class="history-close" onclick="toggleHistory()">&times;</button>
+        </div>
+        <div class="history-list" id="historyList">
+            <div class="history-empty">No history yet</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1 class="title">
+                    Council
+                    <!-- Hand-drawn constellation -->
+                    <svg class="constellation" viewBox="0 0 44 44" fill="none">
+                        <circle cx="22" cy="8" r="4"/>
+                        <circle cx="8" cy="35" r="3.5"/>
+                        <circle cx="36" cy="35" r="4"/>
+                        <path d="M22 12 Q19 21, 11 32"/>
+                        <path d="M22 12 Q25 21, 33 32"/>
+                        <path d="M12 35 Q22 37, 32 35"/>
+                    </svg>
+                </h1>
+                <span class="tagline">Multi-model deliberation</span>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                <button class="model-selector active" data-model="council" onclick="selectModel('council')">
+                    Council
+                </button>
+                <button class="model-selector" data-model="anthropic" onclick="selectModel('anthropic')">
+                    <span class="status-dot" id="status-anthropic"></span>
+                    Claude
+                </button>
+                <button class="model-selector" data-model="openai" onclick="selectModel('openai')">
+                    <span class="status-dot" id="status-openai"></span>
+                    GPT
+                </button>
+                <button class="model-selector" data-model="openrouter" onclick="selectModel('openrouter')">
+                    <span class="status-dot" id="status-openrouter"></span>
+                    Gemini
+                </button>
+                <button class="btn-ghost" onclick="toggleHistory()">History</button>
+            </div>
+        </header>
+
+        <main class="main-card">
+            <div class="card-header">
+                <span class="label-section">/ Input</span>
+
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="deliberate">Deliberate</button>
+                    <button class="mode-btn" data-mode="theorize">Theorize</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="label" id="queryLabel">
+                    Concept
+                    <span class="hint">— question or topic for deliberation</span>
+                </label>
+                <textarea class="textarea-lg" id="queryInput" placeholder="Enter your research question or theoretical topic..."></textarea>
+            </div>
+
+            <div class="form-group" id="contextGroup">
+                <label class="label">
+                    Context
+                    <span class="hint">— optional additional context</span>
+                </label>
+                <textarea class="textarea-md" id="contextInput" placeholder="Additional background or constraints..."></textarea>
+            </div>
+
+            <div class="form-group" id="sourcesGroup" style="display: none;">
+                <label class="label">
+                    Sources
+                    <span class="hint">— upload files or paste text</span>
+                </label>
+
+                <div class="upload-zone" id="fileUploadArea">
+                    <input type="file" id="fileInput" accept=".pdf,.txt,.md,.markdown" multiple>
+                    <div class="upload-icon">↑</div>
+                    <div class="upload-text">
+                        <span class="upload-link">Click to upload</span> or drag and drop
+                    </div>
+                    <div class="upload-hint">PDF, TXT, MD (max 10MB each)</div>
+
+                    <!-- Hand-drawn swoosh -->
+                    <svg class="upload-swoosh" viewBox="0 0 32 24">
+                        <path d="M4 20 Q 16 8, 28 12 L 24 8 M 28 12 L 24 16"/>
+                    </svg>
+                </div>
+
+                <div class="uploaded-files" id="uploadedFiles"></div>
+
+                <textarea class="textarea-md" id="sourcesInput" placeholder="Or paste source text directly here..."></textarea>
+            </div>
+
+            <div class="actions">
+                <button class="btn-primary" id="submitBtn">Run Council</button>
+                <button class="btn-secondary" id="clearBtn">Clear</button>
+            </div>
+        </main>
+
+        <div class="loading" id="loading">
+            <div class="loading-text">Council is deliberating...</div>
+
+            <div class="progress-stages">
+                <div class="progress-stage" id="stage-anthropic">
+                    <div class="stage-icon" id="icon-anthropic">C</div>
+                    <div class="stage-label">Claude</div>
+                    <div class="stage-status" id="pstatus-anthropic">Waiting</div>
+                </div>
+                <div class="progress-stage" id="stage-openai">
+                    <div class="stage-icon" id="icon-openai">G</div>
+                    <div class="stage-label">GPT</div>
+                    <div class="stage-status" id="pstatus-openai">Waiting</div>
+                </div>
+                <div class="progress-stage" id="stage-openrouter">
+                    <div class="stage-icon" id="icon-openrouter">G</div>
+                    <div class="stage-label">Gemini</div>
+                    <div class="stage-status" id="pstatus-openrouter">Waiting</div>
+                </div>
+                <div class="progress-stage" id="stage-chairman">
+                    <div class="stage-icon" id="icon-chairman">S</div>
+                    <div class="stage-label">Synthesis</div>
+                    <div class="stage-status" id="pstatus-chairman">Waiting</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="output-section" id="outputSection">
+            <div class="tabs" id="tabs">
+                <button class="tab synthesis active" data-tab="synthesis">Synthesis</button>
+                <button class="tab" data-tab="anthropic">Claude</button>
+                <button class="tab" data-tab="openai">GPT</button>
+                <button class="tab" data-tab="openrouter">Gemini</button>
+            </div>
+
+            <div class="tab-content active" id="tab-synthesis">
+                <div class="synthesis-box">
+                    <h3>Unified Synthesis</h3>
+                    <div class="content-wrapper">
+                        <button class="copy-btn" onclick="copyContent('synthesisContent')">Copy</button>
+                        <div class="content" id="synthesisContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-anthropic">
+                <div class="perspective">
+                    <div class="perspective-header">
+                        <h3>Claude Opus 4.5</h3>
+                        <span class="model-tag" id="anthropic-status">Primary</span>
+                    </div>
+                    <div class="content-wrapper">
+                        <button class="copy-btn" onclick="copyContent('anthropicContent')">Copy</button>
+                        <div class="content" id="anthropicContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-openai">
+                <div class="perspective">
+                    <div class="perspective-header">
+                        <h3>GPT-5.2</h3>
+                        <span class="model-tag" id="openai-status">Secondary</span>
+                    </div>
+                    <div class="content-wrapper">
+                        <button class="copy-btn" onclick="copyContent('openaiContent')">Copy</button>
+                        <div class="content" id="openaiContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-openrouter">
+                <div class="perspective">
+                    <div class="perspective-header">
+                        <h3>Gemini 3 Pro</h3>
+                        <span class="model-tag" id="openrouter-status">Tertiary</span>
+                    </div>
+                    <div class="content-wrapper">
+                        <button class="copy-btn" onclick="copyContent('openrouterContent')">Copy</button>
+                        <div class="content" id="openrouterContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meta-info" id="metaInfo"></div>
+
+            <div class="usage-box" id="usageBox" style="display: none;">
+                <h4>/ Usage & Cost</h4>
+                <table class="usage-table">
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Role</th>
+                            <th class="number-col">Input</th>
+                            <th class="number-col">Output</th>
+                            <th class="number-col">Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usageTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // Elements
+        const queryInput = document.getElementById('queryInput');
+        const contextInput = document.getElementById('contextInput');
+        const sourcesInput = document.getElementById('sourcesInput');
+        const contextGroup = document.getElementById('contextGroup');
+        const sourcesGroup = document.getElementById('sourcesGroup');
+        const queryLabel = document.getElementById('queryLabel');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loading = document.getElementById('loading');
+        const errorBox = document.getElementById('errorBox');
+        const outputSection = document.getElementById('outputSection');
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const tabs = document.querySelectorAll('.tab');
+
+        let currentMode = 'deliberate';
+        let selectedModel = 'council';
+        let uploadedSources = [];
+
+        // Model selection
+        function selectModel(model) {
+            selectedModel = model;
+            document.querySelectorAll('.model-selector').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.model === model);
+            });
+
+            if (model === 'council') {
+                submitBtn.textContent = 'Run Council';
+            } else {
+                const modelNames = { anthropic: 'Claude', openai: 'GPT', openrouter: 'Gemini' };
+                submitBtn.textContent = `Ask ${modelNames[model]}`;
+            }
+        }
+
+        // File upload elements
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadedFilesDiv = document.getElementById('uploadedFiles');
+
+        // File upload handlers
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('drag-over');
+        });
+
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('drag-over');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        async function handleFiles(files) {
+            for (const file of files) {
+                await uploadFile(file);
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const tempId = Date.now();
+            addFileToList(file.name, 'Uploading...', tempId, true);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                removeFileFromList(tempId);
+
+                if (result.error) {
+                    showError(`Upload failed: ${result.error}`);
+                    return;
+                }
+
+                const sourceId = Date.now();
+                uploadedSources.push({
+                    id: sourceId,
+                    filename: result.filename,
+                    text: result.text
+                });
+
+                const sizeStr = formatFileSize(result.length);
+                addFileToList(result.filename, sizeStr, sourceId, false);
+                updateSourcesTextarea();
+
+            } catch (error) {
+                removeFileFromList(tempId);
+                showError(`Upload failed: ${error.message}`);
+            }
+        }
+
+        function addFileToList(filename, sizeStr, id, isLoading) {
+            const fileEl = document.createElement('div');
+            fileEl.className = 'uploaded-file';
+            fileEl.dataset.id = id;
+            fileEl.innerHTML = `
+                <div class="file-info">
+                    <span class="file-name">${filename}</span>
+                    <span class="file-size">${isLoading ? sizeStr : '(' + sizeStr + ')'}</span>
+                </div>
+                ${!isLoading ? '<button class="remove-file" title="Remove">&times;</button>' : ''}
+            `;
+
+            if (!isLoading) {
+                fileEl.querySelector('.remove-file').addEventListener('click', () => {
+                    uploadedSources = uploadedSources.filter(s => s.id !== id);
+                    fileEl.remove();
+                    updateSourcesTextarea();
+                });
+            }
+
+            uploadedFilesDiv.appendChild(fileEl);
+        }
+
+        function removeFileFromList(id) {
+            const el = uploadedFilesDiv.querySelector(`[data-id="${id}"]`);
+            if (el) el.remove();
+        }
+
+        function updateSourcesTextarea() {
+            if (uploadedSources.length === 0) {
+                sourcesInput.value = '';
+                return;
+            }
+
+            const combined = uploadedSources.map(s =>
+                `=== ${s.filename} ===\n\n${s.text}`
+            ).join('\n\n' + '='.repeat(50) + '\n\n');
+
+            sourcesInput.value = combined;
+        }
+
+        function formatFileSize(chars) {
+            if (chars < 1000) return `${chars} chars`;
+            if (chars < 1000000) return `${(chars / 1000).toFixed(1)}K chars`;
+            return `${(chars / 1000000).toFixed(2)}M chars`;
+        }
+
+        const rawContent = {};
+
+        function copyContent(elementId) {
+            const text = rawContent[elementId] || document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector(`[onclick="copyContent('${elementId}')"]`);
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function renderMarkdown(text) {
+            if (!text) return '';
+            try {
+                return marked.parse(text);
+            } catch (e) {
+                return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+        }
+
+        function setStageStatus(provider, status, statusText) {
+            const icon = document.getElementById(`icon-${provider}`);
+            const statusEl = document.getElementById(`pstatus-${provider}`);
+
+            icon.className = 'stage-icon ' + status;
+            if (statusEl) statusEl.textContent = statusText || status;
+
+            if (status === 'complete') {
+                icon.innerHTML = '&#10003;';
+            } else if (status === 'failed') {
+                icon.innerHTML = '&#10007;';
+            }
+        }
+
+        function resetStages() {
+            ['anthropic', 'openai', 'openrouter', 'chairman'].forEach(provider => {
+                const icon = document.getElementById(`icon-${provider}`);
+                const statusEl = document.getElementById(`pstatus-${provider}`);
+                icon.className = 'stage-icon';
+                if (statusEl) statusEl.textContent = 'Waiting';
+
+                if (provider === 'anthropic') icon.innerHTML = 'C';
+                else if (provider === 'openai') icon.innerHTML = 'G';
+                else if (provider === 'openrouter') icon.innerHTML = 'G';
+                else if (provider === 'chairman') icon.innerHTML = 'S';
+            });
+        }
+
+        async function testConnections() {
+            try {
+                const response = await fetch(`${API_BASE}/api/test`);
+                const results = await response.json();
+
+                for (const [provider, result] of Object.entries(results)) {
+                    const dot = document.getElementById(`status-${provider}`);
+                    if (dot) {
+                        dot.classList.remove('success', 'failed');
+                        dot.classList.add(result.status === 'success' ? 'success' : 'failed');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to test connections:', error);
+            }
+        }
+
+        modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.mode;
+
+                if (currentMode === 'theorize') {
+                    contextGroup.style.display = 'none';
+                    sourcesGroup.style.display = 'block';
+                    queryLabel.innerHTML = 'Concept<span class="hint">— theoretical concept to analyze</span>';
+                } else {
+                    contextGroup.style.display = 'block';
+                    sourcesGroup.style.display = 'none';
+                    queryLabel.innerHTML = 'Concept<span class="hint">— question or topic for deliberation</span>';
+                }
+            });
+        });
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            queryInput.value = '';
+            contextInput.value = '';
+            sourcesInput.value = '';
+            uploadedSources = [];
+            uploadedFilesDiv.innerHTML = '';
+            outputSection.classList.remove('visible');
+            errorBox.classList.remove('visible');
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            const query = queryInput.value.trim();
+            if (!query) {
+                showError('Please enter a query or concept.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            loading.classList.add('visible');
+            errorBox.classList.remove('visible');
+            outputSection.classList.remove('visible');
+            resetStages();
+
+            try {
+                if (selectedModel !== 'council') {
+                    await runSingleModel(query, contextInput.value.trim() || null, selectedModel);
+                } else if (currentMode === 'deliberate') {
+                    await streamDeliberate(query, contextInput.value.trim() || null);
+                } else {
+                    const response = await fetch(`${API_BASE}/api/theorize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            concept: query,
+                            sources: sourcesInput.value.trim()
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.error) {
+                        showError(result.error);
+                        return;
+                    }
+
+                    displayResults(result);
+                }
+
+            } catch (error) {
+                showError(`Request failed: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.remove('visible');
+            }
+        });
+
+        async function runSingleModel(query, context, model) {
+            setStageStatus(model, 'active', 'Processing...');
+
+            const response = await fetch(`${API_BASE}/api/query`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, context, model })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                setStageStatus(model, 'failed', 'Failed');
+                showError(result.error);
+                return;
+            }
+
+            setStageStatus(model, 'complete', 'Done');
+            displaySingleResult(result, model);
+        }
+
+        function displaySingleResult(result, model) {
+            const modelNames = { anthropic: 'Claude', openai: 'GPT', openrouter: 'Gemini' };
+            const contentEl = document.getElementById(`${model}Content`);
+
+            if (contentEl) {
+                rawContent[`${model}Content`] = result.content;
+                contentEl.innerHTML = renderMarkdown(result.content);
+            }
+
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                if (t.dataset.tab === 'synthesis') {
+                    t.style.display = 'none';
+                } else if (t.dataset.tab === model) {
+                    t.style.display = '';
+                } else {
+                    t.style.display = 'none';
+                }
+            });
+
+            const modelTab = document.querySelector(`.tab[data-tab="${model}"]`);
+            if (modelTab) {
+                modelTab.classList.add('active');
+            }
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tab-${model}`).classList.add('active');
+
+            const meta = [];
+            if (result.timestamp) {
+                meta.push(`Generated: ${new Date(result.timestamp).toLocaleString()}`);
+            }
+            meta.push(`Model: ${modelNames[model]}`);
+            document.getElementById('metaInfo').textContent = meta.join(' | ');
+
+            const usageBox = document.getElementById('usageBox');
+            const usageTableBody = document.getElementById('usageTableBody');
+
+            if (result.usage) {
+                usageTableBody.innerHTML = '';
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="provider-col">${model}</td>
+                    <td class="role-col">single</td>
+                    <td class="number-col">${result.usage.input_tokens.toLocaleString()}</td>
+                    <td class="number-col">${result.usage.output_tokens.toLocaleString()}</td>
+                    <td class="number-col usage-total-cost">$${result.usage.cost_usd.toFixed(4)}</td>
+                `;
+                usageTableBody.appendChild(row);
+                usageBox.style.display = 'block';
+            } else {
+                usageBox.style.display = 'none';
+            }
+
+            outputSection.classList.add('visible');
+            outputSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function streamDeliberate(query, context) {
+            return new Promise((resolve, reject) => {
+                ['anthropic', 'openai', 'openrouter'].forEach(p => {
+                    setStageStatus(p, 'active', 'Processing...');
+                });
+
+                fetch(`${API_BASE}/api/deliberate/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, context })
+                }).then(response => {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let finalResult = null;
+
+                    function processEvents(text) {
+                        const lines = text.split('\n');
+                        let eventType = null;
+                        let eventData = null;
+
+                        for (const line of lines) {
+                            if (line.startsWith('event: ')) {
+                                eventType = line.slice(7).trim();
+                            } else if (line.startsWith('data: ')) {
+                                eventData = line.slice(6);
+                                if (eventType && eventData) {
+                                    try {
+                                        handleSSEEvent(eventType, JSON.parse(eventData));
+                                        if (eventType === 'complete') {
+                                            finalResult = JSON.parse(eventData);
+                                        }
+                                    } catch (e) {
+                                        console.error('Parse error:', e);
+                                    }
+                                    eventType = null;
+                                    eventData = null;
+                                }
+                            }
+                        }
+                    }
+
+                    function read() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                if (finalResult) {
+                                    displayResults(finalResult);
+                                }
+                                resolve();
+                                return;
+                            }
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const parts = buffer.split('\n\n');
+                            buffer = parts.pop() || '';
+
+                            for (const part of parts) {
+                                if (part.trim()) {
+                                    processEvents(part + '\n');
+                                }
+                            }
+
+                            read();
+                        }).catch(reject);
+                    }
+
+                    read();
+                }).catch(reject);
+            });
+        }
+
+        function handleSSEEvent(eventType, data) {
+            switch (eventType) {
+                case 'start':
+                    console.log('Deliberation started');
+                    break;
+
+                case 'model_start':
+                    setStageStatus(data.provider, 'active', 'Processing...');
+                    break;
+
+                case 'model_complete':
+                    if (data.success) {
+                        setStageStatus(data.provider, 'complete', 'Done');
+                        if (data.content) {
+                            rawContent[`${data.provider}Content`] = data.content;
+                        }
+                    } else {
+                        setStageStatus(data.provider, 'failed', 'Failed');
+                    }
+                    break;
+
+                case 'synthesis_start':
+                    setStageStatus('chairman', 'active', 'Synthesizing...');
+                    break;
+
+                case 'synthesis_complete':
+                    if (data.success) {
+                        setStageStatus('chairman', 'complete', 'Done');
+                        rawContent['synthesisContent'] = data.synthesis;
+                    } else {
+                        setStageStatus('chairman', 'failed', 'Failed');
+                    }
+                    break;
+
+                case 'complete':
+                    console.log('Deliberation complete');
+                    break;
+            }
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.add('visible');
+        }
+
+        function displayResults(result) {
+            const synthesisEl = document.getElementById('synthesisContent');
+            const synthesisText = result.synthesis || 'No synthesis generated.';
+            rawContent['synthesisContent'] = synthesisText;
+            synthesisEl.innerHTML = renderMarkdown(synthesisText);
+
+            const perspectives = result.perspectives || [];
+
+            for (const p of perspectives) {
+                const contentEl = document.getElementById(`${p.provider}Content`);
+                const statusEl = document.getElementById(`${p.provider}-status`);
+
+                if (contentEl) {
+                    if (p.success) {
+                        rawContent[`${p.provider}Content`] = p.content;
+                        contentEl.innerHTML = renderMarkdown(p.content);
+                        if (statusEl) {
+                            statusEl.classList.remove('failed');
+                        }
+                    } else {
+                        const errorMsg = `Failed: ${p.error || 'Unknown error'}`;
+                        rawContent[`${p.provider}Content`] = errorMsg;
+                        contentEl.textContent = errorMsg;
+                        if (statusEl) {
+                            statusEl.classList.add('failed');
+                            statusEl.textContent = 'Failed';
+                        }
+                    }
+                }
+            }
+
+            const meta = [];
+            if (result.timestamp) {
+                meta.push(`Generated: ${new Date(result.timestamp).toLocaleString()}`);
+            }
+            if (result.failed_providers && result.failed_providers.length > 0) {
+                meta.push(`Failed providers: ${result.failed_providers.join(', ')}`);
+            }
+            document.getElementById('metaInfo').textContent = meta.join(' | ');
+
+            const usageBox = document.getElementById('usageBox');
+            const usageTableBody = document.getElementById('usageTableBody');
+
+            if (result.usage && result.usage.breakdown && result.usage.breakdown.length > 0) {
+                usageTableBody.innerHTML = '';
+
+                for (const item of result.usage.breakdown) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="provider-col">${item.provider}</td>
+                        <td class="role-col">${item.role}</td>
+                        <td class="number-col">${item.input_tokens.toLocaleString()}</td>
+                        <td class="number-col">${item.output_tokens.toLocaleString()}</td>
+                        <td class="number-col">$${item.cost_usd.toFixed(4)}</td>
+                    `;
+                    usageTableBody.appendChild(row);
+                }
+
+                const totals = result.usage.totals;
+                const totalRow = document.createElement('tr');
+                totalRow.className = 'total-row';
+                totalRow.innerHTML = `
+                    <td class="provider-col">TOTAL</td>
+                    <td class="role-col"></td>
+                    <td class="number-col">${totals.input_tokens.toLocaleString()}</td>
+                    <td class="number-col">${totals.output_tokens.toLocaleString()}</td>
+                    <td class="number-col usage-total-cost">$${totals.cost_usd.toFixed(4)}</td>
+                `;
+                usageTableBody.appendChild(totalRow);
+
+                usageBox.style.display = 'block';
+            } else {
+                usageBox.style.display = 'none';
+            }
+
+            outputSection.classList.add('visible');
+
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                t.style.display = '';
+            });
+            document.querySelector('.tab[data-tab="synthesis"]').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-synthesis').classList.add('active');
+
+            outputSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            const overlay = document.getElementById('historyOverlay');
+            const isOpen = panel.classList.contains('open');
+
+            if (isOpen) {
+                panel.classList.remove('open');
+                overlay.classList.remove('open');
+            } else {
+                panel.classList.add('open');
+                overlay.classList.add('open');
+                loadHistory();
+            }
+        }
+
+        async function loadHistory() {
+            const historyList = document.getElementById('historyList');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/history`);
+                const history = await response.json();
+
+                if (history.length === 0) {
+                    historyList.innerHTML = '<div class="history-empty">No history yet</div>';
+                    return;
+                }
+
+                historyList.innerHTML = history.map(item => `
+                    <div class="history-item" data-id="${item.id}" onclick="loadHistoryItem('${item.id}')">
+                        <div class="history-item-header">
+                            <span class="history-item-mode ${item.mode}">${item.mode}</span>
+                            <span class="history-item-time">${formatTime(item.timestamp)}</span>
+                        </div>
+                        <div class="history-item-name">${escapeHtml(item.name || 'Untitled')}</div>
+                        <div class="history-item-query">${escapeHtml(item.query)}</div>
+                        <div class="history-item-footer">
+                            <span class="history-item-cost">${item.cost ? '$' + item.cost.toFixed(4) : ''}</span>
+                            <button class="history-item-delete" onclick="event.stopPropagation(); deleteHistoryItem('${item.id}')" title="Delete">&times;</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                historyList.innerHTML = '<div class="history-empty">Failed to load history</div>';
+            }
+        }
+
+        async function loadHistoryItem(id) {
+            try {
+                const response = await fetch(`${API_BASE}/api/history/${id}`);
+                const result = await response.json();
+
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+
+                displayResults(result);
+                toggleHistory();
+
+                document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+                const item = document.querySelector(`.history-item[data-id="${id}"]`);
+                if (item) item.classList.add('active');
+
+            } catch (error) {
+                showError(`Failed to load history item: ${error.message}`);
+            }
+        }
+
+        async function deleteHistoryItem(id) {
+            if (!confirm('Delete this history entry?')) return;
+
+            try {
+                await fetch(`${API_BASE}/api/history/${id}`, { method: 'DELETE' });
+                loadHistory();
+            } catch (error) {
+                showError(`Failed to delete: ${error.message}`);
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+
+            return date.toLocaleDateString();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Init
+        testConnections();
+    </script>
+</body>
+</html>
