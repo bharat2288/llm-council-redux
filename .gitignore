@@ -19,3 +19,6 @@ nul
 
 # Local data
 council_history.json
+
+# Specs (synced via session workflow, not git)
+specs/
