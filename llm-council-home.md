@@ -84,7 +84,3 @@ SORT type ASC
 > > FROM "knowledge/sessions/llm-council"
 > > SORT file.mtime DESC
 > > ```
-
-## GitHub
-
-- [[README]]
