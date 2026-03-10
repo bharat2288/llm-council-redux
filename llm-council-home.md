@@ -7,17 +7,46 @@ cssclasses:
 ---
 # LLM Council
 *[[dev-hub|Hub]]*
+<span class="hub-status">&mdash;</span>
 
 Multi-model LLM deliberation system. Sends queries to Claude, GPT, and Gemini independently, then synthesizes perspectives via a Chairman model.
 
 ## Specs
 
-```dataview
-TABLE rows.file.link as Specs
-FROM "llm-council/specs"
-WHERE type AND type != "spec-prompts"
-GROUP BY type
-SORT type ASC
+```base
+filters:
+  and:
+    - file.folder.contains("llm-council/specs")
+    - type != "spec-prompts"
+properties:
+  "0":
+    name: file.link
+    label: Spec
+  "1":
+    name: type
+    label: Type
+  "2":
+    name: date
+    label: Date
+  "3":
+    name: created_by
+    label: Created By
+  "4":
+    name: file.mtime
+    label: Modified
+views:
+  - type: table
+    name: All Specs
+    order:
+      - type
+      - file.name
+      - file.mtime
+      - file.backlinks
+    sort:
+      - property: file.mtime
+        direction: DESC
+      - property: type
+        direction: ASC
 ```
 > [!warning]- Open Errors (`$= dv.pages('"knowledge/exports/errors"').where(p => p.project == "llm-council" && !p.resolved).length`)
 > ```dataview
