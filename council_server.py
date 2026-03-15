@@ -156,7 +156,7 @@ except ImportError:
     print("Warning: PyMuPDF not installed. PDF upload disabled. Run: pip install PyMuPDF")
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:5000", "http://127.0.0.1:5000"])
 
 # File upload config
 ALLOWED_EXTENSIONS = {'pdf', 'txt', 'md', 'markdown'}
