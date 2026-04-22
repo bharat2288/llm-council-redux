@@ -7,7 +7,7 @@ cssclasses:
 ---
 # LLM Council
 *[[dev-hub|Hub]]*
-<span class="hub-status">&mdash;</span>
+<span class="hub-status">Functional. Added `council_topfour.py` — reusable 4-model high-effort runner that files synthesis artifacts directly into any project's specs/.</span>
 
 Multi-model LLM deliberation system. Sends queries to Claude, GPT, and Gemini independently, then synthesizes perspectives via a Chairman model.
 
@@ -16,7 +16,7 @@ Multi-model LLM deliberation system. Sends queries to Claude, GPT, and Gemini in
 ```base
 filters:
   and:
-    - file.folder.contains("llm-council/specs")
+    - file.folder.contains("specs/llm-council")
     - type != "spec-prompts"
 properties:
   "0":
@@ -48,48 +48,6 @@ views:
       - property: type
         direction: ASC
 ```
-> [!warning]- Open Errors (`$= dv.pages('"knowledge/exports/errors"').where(p => p.project == "llm-council" && !p.resolved).length`)
-> ```dataview
-> TABLE module, date
-> FROM "knowledge/exports/errors"
-> WHERE project = "llm-council" AND resolved = false
-> SORT date DESC
-> LIMIT 5
-> ```
-
-> [!info]- Decisions (`$= dv.pages('"knowledge/exports/decisions"').where(p => p.project == "llm-council").length`)
-> ```dataview
-> TABLE date
-> FROM "knowledge/exports/decisions"
-> WHERE project = "llm-council"
-> SORT date DESC
-> LIMIT 5
-> ```
->
-> > [!info]- All Decisions
-> > ```dataview
-> > TABLE date
-> > FROM "knowledge/exports/decisions"
-> > WHERE project = "llm-council"
-> > SORT date DESC
-> > ```
-
-> [!tip]- Learnings (`$= dv.pages('"knowledge/exports/learnings"').where(p => p.project == "llm-council").length`)
-> ```dataview
-> TABLE tags
-> FROM "knowledge/exports/learnings"
-> WHERE project = "llm-council"
-> SORT date DESC
-> LIMIT 5
-> ```
->
-> > [!tip]- All Learnings
-> > ```dataview
-> > TABLE tags
-> > FROM "knowledge/exports/learnings"
-> > WHERE project = "llm-council"
-> > SORT date DESC
-> > ```
 
 > [!abstract]- Project Plans (`$= dv.pages('"knowledge/plans"').where(p => p.project == "llm-council").length`)
 > ```dataview
