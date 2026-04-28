@@ -17,37 +17,32 @@ from typing import Optional
 from datetime import datetime
 
 import aiohttp
-from dotenv import load_dotenv
-
-# Load environment from .env in same directory as script
-SCRIPT_DIR = Path(__file__).parent
-load_dotenv(SCRIPT_DIR / '.env')
 
 # === COUNCIL CONFIGURATION ===
-# Models can be overridden via .env file
+# Model slugs are overridable via env; secrets are read from env, no fallbacks.
 COUNCIL_CONFIG = {
     "anthropic": {
-        "model": os.getenv("ANTHROPIC_MODEL", "claude-opus-4-5-20251101"),
+        "model": os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-5-20251101"),
         "role": "primary",
         "chairman": True,
         "api_url": "https://api.anthropic.com/v1/messages"
     },
     "openai": {
-        "model": os.getenv("OPENAI_MODEL", "gpt-5.2"),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-5.2"),
         "role": "secondary",
         "api_url": "https://api.openai.com/v1/chat/completions"
     },
     "openrouter": {
-        "model": os.getenv("OPENROUTER_MODEL", "google/gemini-3-pro-preview"),
+        "model": os.environ.get("OPENROUTER_MODEL", "google/gemini-3-pro-preview"),
         "role": "tertiary",
         "api_url": "https://openrouter.ai/api/v1/chat/completions"
     }
 }
 
-# API Keys
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
-OPENAI_COUNCIL_KEY = os.getenv('OPENAI_COUNCIL_KEY')
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+# API Keys — None when not injected; per-provider calls handle their own missing-key path.
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -84,17 +79,14 @@ class ResearchCouncil:
         self._validate_api_keys()
 
     def _validate_api_keys(self):
-        """Ensure all required API keys are present."""
-        missing = []
-        if not ANTHROPIC_API_KEY:
-            missing.append("ANTHROPIC_API_KEY")
-        if not OPENAI_COUNCIL_KEY:
-            missing.append("OPENAI_COUNCIL_KEY")
-        if not OPENROUTER_API_KEY:
-            missing.append("OPENROUTER_API_KEY")
-
-        if missing:
-            raise ValueError(f"Missing API keys: {', '.join(missing)}")
+        """Require at least one provider key. Per-provider calls fail at request time
+        if their key is absent — surfaces clearer errors than a startup hard-fail."""
+        if not (ANTHROPIC_API_KEY or OPENAI_API_KEY or OPENROUTER_API_KEY):
+            raise ValueError(
+                "No provider API keys are set. Set at least one of "
+                "ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY. "
+                "Launch via the private llm-council launcher or a private shell."
+            )
 
     def _log(self, message: str):
         """Print message if verbose mode is enabled."""
@@ -254,7 +246,7 @@ class ResearchCouncil:
         """Call OpenAI API with retry logic."""
         config = self.config["openai"]
         headers = {
-            "Authorization": f"Bearer {OPENAI_COUNCIL_KEY}",
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
 
@@ -869,7 +861,7 @@ async def test_connections(verbose: bool = True) -> dict:
             print("Testing OpenAI (GPT)...")
         try:
             headers = {
-                "Authorization": f"Bearer {OPENAI_COUNCIL_KEY}",
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
                 "Content-Type": "application/json"
             }
             payload = {
@@ -970,7 +962,7 @@ def main():
         print("\nAPI Key Status:")
         keys = [
             ("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY),
-            ("OPENAI_COUNCIL_KEY", OPENAI_COUNCIL_KEY),
+            ("OPENAI_API_KEY", OPENAI_API_KEY),
             ("OPENROUTER_API_KEY", OPENROUTER_API_KEY)
         ]
         all_keys_present = True
@@ -982,7 +974,8 @@ def main():
                 all_keys_present = False
 
         if not all_keys_present:
-            print("\nCannot proceed: Missing API keys in .env")
+            print("\nCannot proceed: required API key env vars are not set. "
+                  "Launch via the private llm-council launcher or a private shell.")
             return
 
         print("\nTesting connections...")

@@ -17,16 +17,11 @@ from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
 
 from research_council import ResearchCouncil, test_connections
 
-# Load environment variables
-SCRIPT_DIR = Path(__file__).parent
-load_dotenv(SCRIPT_DIR / '.env')
-
 # API key for naming (uses OpenAI for speed/cost)
-OPENAI_API_KEY = os.getenv('OPENAI_COUNCIL_KEY')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 # History file path
 HISTORY_FILE = Path(__file__).parent / 'council_history.json'

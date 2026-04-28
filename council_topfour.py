@@ -33,12 +33,8 @@ from datetime import datetime
 from pathlib import Path
 
 import aiohttp
-from dotenv import load_dotenv
 
-SCRIPT_DIR = Path(__file__).parent
-load_dotenv(SCRIPT_DIR / ".env")
-
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 THEORISTS = [
     {"name": "gpt",    "slug": "openai/gpt-5.4",                "effort": "high"},
@@ -167,8 +163,10 @@ async def main():
     args = ap.parse_args()
 
     if not OPENROUTER_API_KEY:
-        print("FATAL: OPENROUTER_API_KEY missing from environment / .env", flush=True)
-        sys.exit(2)
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not set. "
+            "Launch via the private llm-council launcher or a private shell."
+        )
 
     query = args.query or Path(args.query_file).read_text(encoding="utf-8")
     out_dir = Path(args.out_dir)
