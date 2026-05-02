@@ -7,7 +7,7 @@ cssclasses:
 ---
 # LLM Council
 *[[dev-hub|Hub]]*
-<span class="hub-status">Functional. Added `council_topfour.py` — reusable 4-model high-effort runner that files synthesis artifacts directly into any project's specs/.</span>
+<span class="hub-status">Functional. Topfour CLI (`council_topfour.py`) now fully documented as sub-design [[design-topfour]] alongside the classic 3-model engine. Latest run synthesized a Claude Code push-to-main deny investigation ($0.51, 4/4 theorists). Integration into meshbook frontend tracked as cross-project items #63–#66 in `meshbook/specs/pipeline`.</span>
 
 Multi-model LLM deliberation system. Sends queries to Claude, GPT, and Gemini independently, then synthesizes perspectives via a Chairman model.
 
