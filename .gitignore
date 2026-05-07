@@ -22,3 +22,7 @@ council_history.json
 
 # Specs (synced via session workflow, not git)
 specs/
+
+# Canonical specs live in the private dev-specs repo
+specs/
+*-home.md
