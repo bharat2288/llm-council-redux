@@ -3,10 +3,10 @@
 Top-tier 4-model council runner for high-stakes questions.
 
 Models (all via OpenRouter, high reasoning effort):
-  - openai/gpt-5.4
+  - openai/gpt-5.5
   - anthropic/claude-opus-4.7
   - google/gemini-3.1-pro-preview
-  - x-ai/grok-4.20
+  - x-ai/grok-4.3
 
 Chairman: anthropic/claude-opus-4.7 (high effort).
 
@@ -37,10 +37,10 @@ import aiohttp
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 THEORISTS = [
-    {"name": "gpt",    "slug": "openai/gpt-5.4",                "effort": "high"},
+    {"name": "gpt",    "slug": "openai/gpt-5.5",                "effort": "high"},
     {"name": "claude", "slug": "anthropic/claude-opus-4.7",     "effort": "high"},
     {"name": "gemini", "slug": "google/gemini-3.1-pro-preview", "effort": "high"},
-    {"name": "grok",   "slug": "x-ai/grok-4.20",                "effort": "high"},
+    {"name": "grok",   "slug": "x-ai/grok-4.3",                 "effort": "high"},
 ]
 CHAIRMAN_SLUG = "anthropic/claude-opus-4.7"
 CHAIRMAN_EFFORT = "high"

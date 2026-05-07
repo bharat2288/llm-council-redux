@@ -19,6 +19,7 @@ nul
 
 # Local data
 council_history.json
+query-*.md
 
 # Specs (synced via session workflow, not git)
 specs/
