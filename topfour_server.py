@@ -76,7 +76,12 @@ class CouncilRun:
 
     Owned by the in-flight registry on the Flask app. The worker thread
     pushes events onto `events`; the /stream consumer pulls from it.
-    Slice 5 will add `cancelled: bool` and a way to interrupt the worker.
+
+    Cancellation: DELETE /api/topfour/<run_id> sets `cancelled = True`.
+    The worker checks at safe points and skips remaining phases when set.
+    True subprocess termination (SIGKILL on in-flight CLI calls) is v0.2;
+    today the worker waits for current-phase theorists to return, then
+    honors the flag at the next checkpoint.
     """
 
     run_id: str
@@ -87,6 +92,7 @@ class CouncilRun:
     finished_at: Optional[datetime] = None
     artifact_path: Optional[Path] = None
     error: Optional[str] = None
+    cancelled: bool = False
 
 
 def create_app(*, project_root: str | None = None) -> Flask:
@@ -222,34 +228,49 @@ def _run_council_worker(run: CouncilRun) -> None:
                         "message": r.error or "theorist call failed",
                     })
 
-        # Phase 2 — chairman synthesis (only if ≥2 theorists succeeded).
-        successful = [r for r in theorist_results if r and r.success]
-        if len(successful) < 2:
+        # Cancellation checkpoint: between theorist phase and chairman.
+        # If the operator hit DELETE while theorists were running, skip
+        # synthesis here. Theorist responses already wrote to artifacts
+        # (still useful for record), but chairman doesn't fire so no
+        # cost is incurred for synthesis on a cancelled run.
+        if run.cancelled:
             synthesis = SynthesisResult(
                 success=False, content="",
-                error=f"only {len(successful)} theorist(s) succeeded; need ≥2",
+                error="cancelled by operator before chairman synthesis",
             )
-            _push(run, "synthesis_skipped", {
-                "reason": synthesis.error,
-                "successful_count": len(successful),
+            _push(run, "cancelled", {
+                "phase": "before_chairman",
+                "successful_theorists": sum(1 for r in theorist_results if r and r.success),
             })
         else:
-            _push(run, "chairman_started", {"model": config.synthesizer.model})
-            synthesis = run_synthesis(
-                spec=config.synthesizer,
-                topic=config.topic,
-                theorist_results=[r for r in theorist_results if r is not None],
-                timeout_seconds=600,
-            )
-            _push(run, "chairman_done", {
-                "success": synthesis.success,
-                "content_chars": len(synthesis.content),
-                "cost_usd": synthesis.cost_usd,
-                "duration_seconds": synthesis.duration_seconds,
-                "error": synthesis.error,
-            })
+            # Phase 2 — chairman synthesis (only if ≥2 theorists succeeded).
+            successful = [r for r in theorist_results if r and r.success]
+            if len(successful) < 2:
+                synthesis = SynthesisResult(
+                    success=False, content="",
+                    error=f"only {len(successful)} theorist(s) succeeded; need ≥2",
+                )
+                _push(run, "synthesis_skipped", {
+                    "reason": synthesis.error,
+                    "successful_count": len(successful),
+                })
+            else:
+                _push(run, "chairman_started", {"model": config.synthesizer.model})
+                synthesis = run_synthesis(
+                    spec=config.synthesizer,
+                    topic=config.topic,
+                    theorist_results=[r for r in theorist_results if r is not None],
+                    timeout_seconds=600,
+                )
+                _push(run, "chairman_done", {
+                    "success": synthesis.success,
+                    "content_chars": len(synthesis.content),
+                    "cost_usd": synthesis.cost_usd,
+                    "duration_seconds": synthesis.duration_seconds,
+                    "error": synthesis.error,
+                })
 
-        # Phase 3 — write artifact.
+        # Phase 3 — write artifact (whether cancelled or not, for the record).
         run.finished_at = datetime.now(timezone.utc)
         artifact_path = write_artifact(
             config=config,
@@ -261,6 +282,7 @@ def _run_council_worker(run: CouncilRun) -> None:
         )
         run.artifact_path = artifact_path
 
+        successful_count = sum(1 for r in theorist_results if r and r.success)
         total_cost = sum(
             (r.cost_usd if r else 0.0) for r in theorist_results
         ) + synthesis.cost_usd
@@ -270,9 +292,10 @@ def _run_council_worker(run: CouncilRun) -> None:
             "artifact_path": str(artifact_path),
             "total_cost_usd": total_cost,
             "duration_seconds": duration,
-            "theorists_succeeded": len(successful),
+            "theorists_succeeded": successful_count,
             "theorists_total": len(theorist_results),
             "synthesis_succeeded": synthesis.success,
+            "cancelled": run.cancelled,
         })
 
     except Exception as exc:  # noqa: BLE001 — emit any unhandled failure as a stream event
@@ -392,6 +415,25 @@ def _register_routes(app: Flask) -> None:
             stream_with_context(_stream_events(run)),
             mimetype="text/event-stream",
         )
+
+    @app.delete("/api/topfour/<run_id>")
+    def delete_run(run_id: str):
+        run = app.config["_TOPFOUR_RUNS"].get(run_id)
+        if run is None:
+            return _error_response(
+                "unknown_run",
+                f"no run with id {run_id!r}",
+                HTTPStatus.NOT_FOUND,
+            )
+        # Set the cancelled flag. The worker thread checks it at safe
+        # points (currently: between theorist phase and chairman) and
+        # skips remaining work. In-flight theorist subprocesses are NOT
+        # killed today (v0.2 work — needs fire_theorist to expose Popen
+        # handles); the worker waits for them to return naturally, then
+        # honors the flag. Idempotent: DELETE on an already-cancelled or
+        # already-done run still returns 200.
+        run.cancelled = True
+        return jsonify({"run_id": run_id, "cancelled": True})
 
 
 # -- launcher entry --------------------------------------------------------

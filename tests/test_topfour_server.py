@@ -375,3 +375,114 @@ class TestStreamEndpoint:
         assert "content_chars" in d
         assert "cost_usd" in d
         assert "duration_seconds" in d
+
+
+# -- DELETE /api/topfour/<run_id> cancellation -----------------------------
+
+
+class TestCancellation:
+    """DELETE /api/topfour/<run_id> sets the cancelled flag on the run.
+
+    The worker thread checks the flag at safe points (currently: before
+    chairman synthesis). When cancelled, the chairman phase is skipped
+    and a `cancelled` event is emitted before `done`. The artifact is
+    still written for the record (with synthesis_skipped) so the
+    operator can review whatever theorist responses came back before
+    the cancel.
+
+    True subprocess termination (killing in-flight claude-cli /
+    codex-cli / gemini-cli) is deferred to v0.2 — would require
+    fire_theorist to expose a Popen handle for the worker to kill.
+    """
+
+    def _payload(self, **overrides):
+        body = {
+            "topic": "Test cancellation flow.",
+            "project": "meshbook",
+            "mode": "free-3-model-with-gemini-cli",
+        }
+        body.update(overrides)
+        return body
+
+    def test_delete_unknown_run_returns_404(self, client) -> None:
+        response = client.delete("/api/topfour/not-a-real-id")
+        assert response.status_code == 404
+        body = response.get_json()
+        assert body["error"]["code"] == "unknown_run"
+
+    def test_delete_known_run_returns_200_and_marks_cancelled(
+        self, client, mock_theorist
+    ) -> None:
+        # Ordinary completed run — DELETE after-the-fact still marks cancelled
+        # but the artifact already wrote with normal flow. Useful for chat
+        # surfaces that fire DELETE on tab-close regardless of run state.
+        start = client.post("/api/topfour/start", json=self._payload())
+        run_id = start.get_json()["run_id"]
+        # Drain the stream so the worker thread completes.
+        client.get(f"/api/topfour/stream/{run_id}")
+
+        response = client.delete(f"/api/topfour/{run_id}")
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body["cancelled"] is True
+        assert body["run_id"] == run_id
+
+    def test_delete_during_run_skips_chairman_and_emits_cancelled(
+        self, client
+    ) -> None:
+        # Use a blocking mock so theorists hold mid-flight long enough for
+        # DELETE to land before chairman synthesis starts. The cancelled
+        # flag should cause synthesis to be skipped and the artifact to
+        # be written with synthesis_skipped status.
+        import threading
+
+        release = threading.Event()
+        started_count = threading.Semaphore(0)  # signals each theorist start
+
+        def blocking_fire(spec, prompt, timeout_seconds=600):
+            # Chairman has name "chairman" — only block theorists, not
+            # synthesis (synthesis won't be called if cancellation lands
+            # before chairman phase, but defensive code anyway).
+            if spec.name != "chairman":
+                started_count.release()  # signal: this theorist has started
+                release.wait(timeout=10)
+            return TheoristResult(
+                name=spec.name, model=spec.model, routing=spec.routing,
+                success=True,
+                content=f"Mock {spec.name} response.",
+                cost_usd=0.0, duration_seconds=0.01,
+            )
+
+        from unittest.mock import patch
+        with patch("topfour_server.fire_theorist", side_effect=blocking_fire), \
+             patch("llm_council.synthesis.fire_theorist", side_effect=blocking_fire):
+            start = client.post("/api/topfour/start", json=self._payload())
+            run_id = start.get_json()["run_id"]
+
+            # Wait for at least one theorist to have started (proves the
+            # worker thread is in the theorist phase, not still parsing
+            # config). Bounded — fail loud if the worker stalls.
+            assert started_count.acquire(timeout=5), "no theorist started in time"
+
+            # Now DELETE — cancellation should land before theorists complete.
+            response = client.delete(f"/api/topfour/{run_id}")
+            assert response.status_code == 200
+            assert response.get_json()["cancelled"] is True
+
+            # Release the blocked theorists so the worker can proceed,
+            # see the cancelled flag at the chairman checkpoint, and
+            # emit the cancelled event.
+            release.set()
+
+            stream = client.get(f"/api/topfour/stream/{run_id}")
+
+        events = _parse_sse(stream.get_data())
+        event_names = [e["event"] for e in events]
+        # Cancelled event must appear; chairman phase must NOT have run.
+        assert "cancelled" in event_names
+        assert "chairman_started" not in event_names
+        # Done event still fires so consumers don't hang.
+        assert event_names[-1] == "done"
+        # done.cancelled flag tells the consumer the run ended via cancellation.
+        done = next(e for e in events if e["event"] == "done")
+        assert done["data"].get("cancelled") is True
