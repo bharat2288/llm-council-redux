@@ -105,12 +105,16 @@ def _fire_claude_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
         "claude-cli not on PATH. Install Claude Code or run from a shell "
         "where `claude --version` succeeds.",
     )
+    # claude --effort accepts low/medium/high/xhigh/max. Map our
+    # low/medium/high directly; fall back gracefully on unexpected values.
     args = [
         exe,
         "--print",
         "--dangerously-skip-permissions",  # one-shot theorist; no tool prompts
         "--model",
         spec.model,
+        "--effort",
+        spec.effort,
     ]
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
 
@@ -120,15 +124,16 @@ def _fire_codex_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
         "codex",
         "codex-cli not on PATH. Install Codex CLI and run `codex login` first.",
     )
-    # codex uses `exec` subcommand for non-interactive runs.
-    #   -m <model>             pick the model directly
-    #   --sandbox read-only    council theorists don't write code; cap blast radius
-    #   --skip-git-repo-check  don't refuse outside a git repo
+    # codex uses `exec` subcommand for non-interactive runs. Effort is a
+    # config field, overridden inline via -c. Sandbox capped to read-only
+    # since theorists don't write code.
     args = [
         exe,
         "exec",
         "-m",
         spec.model,
+        "-c",
+        f'model_reasoning_effort="{spec.effort}"',
         "--sandbox",
         "read-only",
         "--skip-git-repo-check",
@@ -139,14 +144,29 @@ def _fire_codex_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
 def _fire_gemini_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
     exe = _resolve_binary(
         "gemini",
-        "gemini-cli not on PATH. The free-3-model preset depends on a "
-        "Gemini CLI subprocess interface that is not yet available on this "
-        "machine (chat-surface ADR Open Item #6). Switch to free-2-model "
-        "or standard-paid (with op-run wrapper).",
+        "gemini-cli not on PATH. Install via `npm i -g @google/gemini-cli` "
+        "and `gemini` to authenticate, then re-run.",
     )
-    # Gemini CLI exists in some preview form; signature TBD. Refine when
-    # the binary actually ships and we can probe `gemini --help`.
-    args = [exe, "--print", "--model", spec.model]
+    # gemini-cli 0.41.x defaults to interactive; passing -p triggers
+    # non-interactive (headless) mode, with the prompt value appended to
+    # stdin. We pass an empty -p to flip the mode and feed the real
+    # (multi-line, system-wrapped) prompt via stdin — same pattern as
+    # claude-cli and codex-cli, more reliable than packing the whole
+    # prompt into a CLI argument. --skip-trust avoids the trusted-folder
+    # prompt that otherwise blocks headless CWDs.
+    #
+    # Note: gemini-cli 0.41.x exposes no effort/reasoning/thinking flag.
+    # Effort is implicit in the model choice (gemini-2.5-pro vs flash).
+    # `spec.effort` is recorded in the artifact for transparency but isn't
+    # passed through. If a future release adds a flag, update this branch.
+    args = [
+        exe,
+        "-p",
+        "",
+        "-m",
+        spec.model,
+        "--skip-trust",
+    ]
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
 
 

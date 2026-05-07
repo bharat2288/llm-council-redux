@@ -195,6 +195,17 @@ def _frontmatter(
     duration_seconds: float,
     total_cost_usd: float,
 ) -> str:
+    """Build the YAML frontmatter block.
+
+    Notes on style choices (driven by Obsidian's Properties panel which is
+    stricter than spec YAML):
+      - `topic` is force-quoted because long unquoted scalars with commas
+        sometimes confuse Obsidian's scanner even when spec-legal.
+      - `theorists` uses block-style (`- item` per line) rather than inline
+        flow style (`[a, b]`) — Obsidian Properties recognizes block-style
+        lists as multi-value tags; flow-style often renders as a single
+        opaque string.
+    """
     theorist_models = [t.model for t in config.theorists]
     lines = [
         "---",
@@ -203,15 +214,29 @@ def _frontmatter(
         f"date: {started_at.strftime('%Y-%m-%d')}",
         "created_by: council",
         f"status: {config.artifact.status}",
-        f"topic: {_yaml_scalar(config.topic)}",
+        f"topic: {_yaml_force_quoted(config.topic)}",
         f"mode: {config.mode}",
-        f"theorists: [{', '.join(theorist_models)}]",
-        f"synthesizer: {config.synthesizer.model}",
-        f"cost_usd: {total_cost_usd:.4f}",
-        f"duration_seconds: {duration_seconds:.1f}",
-        "---",
+        "theorists:",
     ]
+    for model in theorist_models:
+        lines.append(f"  - {model}")
+    lines.extend(
+        [
+            f"synthesizer: {config.synthesizer.model}",
+            f"cost_usd: {total_cost_usd:.4f}",
+            f"duration_seconds: {duration_seconds:.1f}",
+            "---",
+        ]
+    )
     return "\n".join(lines) + "\n"
+
+
+def _yaml_force_quoted(s: str) -> str:
+    """Always wrap the string in double quotes, escaping internal quotes/
+    backslashes. Used for fields where unquoted form has bitten us in
+    Obsidian rendering even though it's spec-legal."""
+    escaped = s.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
 
 
 def _nav_header(project: str, topic: str) -> str:
