@@ -18,6 +18,7 @@ from pathlib import Path
 
 from llm_council.artifact import write_artifact
 from llm_council.config import Config, load_config
+from llm_council.defaults import default_config_for_mode, known_modes
 from llm_council.errors import CouncilError
 from llm_council.routing import TheoristResult, fire_theorist
 from llm_council.synthesis import run_synthesis
@@ -44,14 +45,41 @@ def main(argv: list[str] | None = None) -> int:
     p_pre = sub.add_parser("preflight", help="Validate config without firing.")
     p_pre.add_argument("--config", required=True, type=Path)
 
+    p_def = sub.add_parser(
+        "defaults",
+        help=(
+            "Print the canonical config JSON for a named mode. Used by both "
+            "the /council CLI skill and (via the topfour HTTP daemon) the "
+            "Meshbook chat-dropdown caller as the single source of truth."
+        ),
+    )
+    p_def.add_argument(
+        "--mode", required=True,
+        help=f"Mode name. Known: {', '.join(known_modes())}",
+    )
+
     args = parser.parse_args(argv)
 
     if args.cmd == "preflight":
         return _cmd_preflight(args.config)
     if args.cmd == "fire":
         return _cmd_fire(args.config, args.output_dir, args.theorist_timeout)
+    if args.cmd == "defaults":
+        return _cmd_defaults(args.mode)
     parser.print_help()
     return 2
+
+
+def _cmd_defaults(mode: str) -> int:
+    """Print canonical config JSON for a named mode."""
+    import json
+    try:
+        cfg = default_config_for_mode(mode)
+    except CouncilError as exc:
+        print(f"FAIL defaults: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(cfg, indent=2))
+    return 0
 
 
 def _cmd_preflight(config_path: Path) -> int:
