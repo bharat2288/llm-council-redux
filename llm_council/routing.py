@@ -111,6 +111,14 @@ def _fire_claude_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
         exe,
         "--print",
         "--dangerously-skip-permissions",  # one-shot theorist; no tool prompts
+        # Skip user-level settings (hooks, MCP, plugins). One-shot council
+        # subprocesses don't need prompt logging or session-end indexing,
+        # and the user-level SessionEnd hook on Windows intermittently
+        # fails with EPERM when libuv spawns bash.exe under burst — that
+        # failure tanks rc to 1 even though the model output was fine.
+        # OAuth / Anthropic auth is independent of settings sources.
+        "--setting-sources",
+        "project",
         "--model",
         spec.model,
         "--effort",
@@ -190,9 +198,11 @@ def _run_subprocess(args: list[str], stdin: str, name: str, timeout: int) -> str
     )
     if proc.returncode != 0:
         stderr_tail = (proc.stderr or "").strip().splitlines()[-5:]
+        stdout_tail = (proc.stdout or "").strip().splitlines()[-5:]
+        detail = " | ".join(stderr_tail or stdout_tail) or "(no stderr/stdout)"
         raise TheoristFailure(
             name,
-            f"subprocess rc={proc.returncode}: {' | '.join(stderr_tail)}",
+            f"subprocess rc={proc.returncode}: {detail}",
         )
     out = (proc.stdout or "").strip()
     if not out:
@@ -209,13 +219,10 @@ def _fire_openrouter(spec: TheoristSpec, prompt: str, timeout: int) -> tuple[str
     if not api_key:
         raise RoutingError(
             "OPENROUTER_API_KEY not set. The 'openrouter' routing requires the "
-            "key to be in the environment. Common fix: launch the council under "
-            "the op-run wrapper so 1Password injects it (see "
-            "C:\\launcher\\llm-windows.op.env), e.g.:\n"
-            "  op run --env-file=C:\\launcher\\llm-windows.op.env -- "
-            "python -m llm_council fire --config <path> --output-dir <dir>\n"
-            "Or switch this run to a free-2-model preset which uses claude-cli "
-            "+ codex-cli subscriptions (no API key needed)."
+            "key to be in the environment. Launch the council from a private "
+            "injection shell or wrapper that supplies OPENROUTER_API_KEY "
+            "without exposing private launcher paths. Or switch this run to a "
+            "free preset that uses subscription CLIs only."
         )
     # Imported here so the package doesn't hard-require aiohttp on subscription
     # paths. urllib + json keep the dependency surface minimal.
