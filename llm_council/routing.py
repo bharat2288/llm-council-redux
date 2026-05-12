@@ -187,27 +187,80 @@ def _wrap_with_system(prompt: str) -> str:
 
 
 def _run_subprocess(args: list[str], stdin: str, name: str, timeout: int) -> str:
-    proc = subprocess.run(
-        args,
-        input=stdin,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=timeout,
-    )
+    # Windows orphan-pipe fix: when subprocess.run hits its timeout, it kills
+    # the immediate child but its grandchildren (codex.CMD -> cmd.exe -> node)
+    # keep holding stdout/stderr pipes open, so the call doesn't return for
+    # 10-25 minutes after the timeout fires. Launching in a new process group
+    # gives us a handle we can taskkill /T /F before we wait on the pipes.
+    popen_kwargs: dict = {
+        "stdin": subprocess.PIPE,
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.PIPE,
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+    }
+    if os.name == "nt":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+    proc = subprocess.Popen(args, **popen_kwargs)
+    try:
+        stdout, stderr = proc.communicate(input=stdin, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_tree(proc)
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            stdout, stderr = "", ""
+        raise TheoristFailure(
+            name,
+            f"subprocess timed out after {timeout}s and was force-killed "
+            f"({' '.join(args[:2])}...)",
+        )
+
     if proc.returncode != 0:
-        stderr_tail = (proc.stderr or "").strip().splitlines()[-5:]
-        stdout_tail = (proc.stdout or "").strip().splitlines()[-5:]
+        stderr_tail = (stderr or "").strip().splitlines()[-5:]
+        stdout_tail = (stdout or "").strip().splitlines()[-5:]
         detail = " | ".join(stderr_tail or stdout_tail) or "(no stderr/stdout)"
         raise TheoristFailure(
             name,
             f"subprocess rc={proc.returncode}: {detail}",
         )
-    out = (proc.stdout or "").strip()
+    out = (stdout or "").strip()
     if not out:
         raise TheoristFailure(name, "subprocess returned empty stdout")
     return out
+
+
+def _kill_tree(proc: "subprocess.Popen") -> None:
+    """Kill a subprocess and its entire descendant tree.
+
+    On Windows, `proc.kill()` only ends the immediate child — .CMD shims
+    that fork Node grandchildren leave orphans holding our stdout/stderr
+    pipes, which keeps `communicate()` blocked. `taskkill /T /F` walks the
+    parent-child PID tree the OS already tracks. On POSIX, killing the
+    process group has the equivalent effect (we don't currently use this
+    routing path on POSIX but the branch keeps behavior portable).
+    """
+    if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/T", "/F", "/PID", str(proc.pid)],
+                capture_output=True,
+                timeout=5,
+            )
+        except Exception:  # noqa: BLE001 — best-effort cleanup
+            try:
+                proc.kill()
+            except Exception:  # noqa: BLE001
+                pass
+    else:
+        try:
+            proc.kill()
+        except Exception:  # noqa: BLE001
+            pass
 
 
 # ---------- OpenRouter (paid) path ----------
