@@ -49,7 +49,7 @@ def mock_theorist():
     fires complete in milliseconds. Affects both theorist firing AND
     chairman synthesis (chairman uses the same dispatch).
     """
-    def fake_fire(spec, prompt, timeout_seconds=600):
+    def fake_fire(spec, prompt, timeout_seconds=600, include_dirs=()):
         return TheoristResult(
             name=spec.name,
             model=spec.model,
@@ -439,7 +439,7 @@ class TestCancellation:
         release = threading.Event()
         started_count = threading.Semaphore(0)  # signals each theorist start
 
-        def blocking_fire(spec, prompt, timeout_seconds=600):
+        def blocking_fire(spec, prompt, timeout_seconds=600, include_dirs=()):
             # Chairman has name "chairman" — only block theorists, not
             # synthesis (synthesis won't be called if cancellation lands
             # before chairman phase, but defensive code anyway).

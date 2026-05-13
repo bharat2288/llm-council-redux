@@ -44,10 +44,21 @@ class TheoristResult:
     duration_seconds: float = 0.0
 
 
-def fire_theorist(spec: TheoristSpec, prompt: str, timeout_seconds: int = 600) -> TheoristResult:
+def fire_theorist(
+    spec: TheoristSpec,
+    prompt: str,
+    timeout_seconds: int = 600,
+    include_dirs: tuple[str, ...] = (),
+) -> TheoristResult:
     """Dispatch one theorist and return its result. Never raises — returns
     a TheoristResult with success=False on failure so the caller can keep
-    going with the survivors."""
+    going with the survivors.
+
+    `include_dirs` is only used by gemini-cli routing. Other routings ignore
+    it (claude-cli runs with --dangerously-skip-permissions, codex-cli with
+    --sandbox read-only — both already see the whole filesystem; only
+    gemini-cli sandboxes paths outside its workspace and needs explicit
+    include flags for grounded mode)."""
     import time
 
     t0 = time.monotonic()
@@ -59,7 +70,7 @@ def fire_theorist(spec: TheoristSpec, prompt: str, timeout_seconds: int = 600) -
             content = _fire_codex_cli(spec, prompt, timeout_seconds)
             cost = 0.0
         elif spec.routing == "gemini-cli":
-            content = _fire_gemini_cli(spec, prompt, timeout_seconds)
+            content = _fire_gemini_cli(spec, prompt, timeout_seconds, include_dirs)
             cost = 0.0
         elif spec.routing == "openrouter":
             content, cost = _fire_openrouter(spec, prompt, timeout_seconds)
@@ -149,7 +160,12 @@ def _fire_codex_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
 
 
-def _fire_gemini_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
+def _fire_gemini_cli(
+    spec: TheoristSpec,
+    prompt: str,
+    timeout: int,
+    include_dirs: tuple[str, ...] = (),
+) -> str:
     exe = _resolve_binary(
         "gemini",
         "gemini-cli not on PATH. Install via `npm i -g @google/gemini-cli` "
@@ -167,6 +183,11 @@ def _fire_gemini_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
     # Effort is implicit in the model choice (gemini-2.5-pro vs flash).
     # `spec.effort` is recorded in the artifact for transparency but isn't
     # passed through. If a future release adds a flag, update this branch.
+    #
+    # `--include-directories` extends gemini's workspace boundary. Without
+    # it, gemini refuses to read paths outside CWD even with --skip-trust.
+    # Grounded mode (theorist asked to read specific files) requires this;
+    # ungrounded mode passes an empty tuple. See SKILL.md "Grounded mode".
     args = [
         exe,
         "-p",
@@ -175,6 +196,8 @@ def _fire_gemini_cli(spec: TheoristSpec, prompt: str, timeout: int) -> str:
         spec.model,
         "--skip-trust",
     ]
+    if include_dirs:
+        args.extend(["--include-directories", ",".join(include_dirs)])
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
 
 

@@ -70,6 +70,13 @@ class Config:
     theorists: tuple[TheoristSpec, ...]
     synthesizer: SynthesizerSpec
     artifact: ArtifactSpec
+    include_dirs: tuple[str, ...] = ()
+    # Workspace directories to expose to tool-using theorists. Required for
+    # gemini-cli when the topic asks theorists to read files outside CWD —
+    # gemini sandboxes hard by default and refuses paths outside its
+    # workspace. claude-cli (--dangerously-skip-permissions) and codex-cli
+    # (--sandbox read-only) ignore this field. Operator sets at fire time
+    # when running a grounded council; see SKILL.md "Grounded mode".
 
 
 def load_config(path: Path) -> Config:
@@ -124,6 +131,13 @@ def parse_config(data: Any) -> Config:
             f"artifact.status must be 'draft' or 'canonical', got {artifact.status!r}"
         )
 
+    raw_include = data.get("include_dirs") or ()
+    if not isinstance(raw_include, (list, tuple)) or any(
+        not isinstance(p, str) or not p for p in raw_include
+    ):
+        raise ConfigError("include_dirs must be a list of non-empty strings")
+    include_dirs = tuple(raw_include)
+
     return Config(
         topic=topic,
         project=project,
@@ -131,6 +145,7 @@ def parse_config(data: Any) -> Config:
         theorists=theorists,
         synthesizer=synth,
         artifact=artifact,
+        include_dirs=include_dirs,
     )
 
 

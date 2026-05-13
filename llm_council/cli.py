@@ -197,7 +197,13 @@ def _cmd_fire(config_path: Path, output_dir: Path, theorist_timeout: int) -> int
                 with in_flight_lock:
                     in_flight[t.name] = time.monotonic()
                 print(f"[theorist START]   {t.name:8} {t.model}", flush=True)
-                fut = pool.submit(fire_theorist, t, config.topic, theorist_timeout)
+                fut = pool.submit(
+                    fire_theorist,
+                    t,
+                    config.topic,
+                    theorist_timeout,
+                    config.include_dirs,
+                )
                 futures[fut] = idx
             for fut in as_completed(futures):
                 idx = futures[fut]
@@ -252,6 +258,7 @@ def _cmd_fire(config_path: Path, output_dir: Path, theorist_timeout: int) -> int
         topic=config.topic,
         theorist_results=theorist_results,
         timeout_seconds=theorist_timeout,
+        include_dirs=config.include_dirs,
     )
     if synthesis.success:
         print(
@@ -349,6 +356,7 @@ def _cmd_resume(run_dir: Path, theorist_timeout: int) -> int:
         topic=config.topic,
         theorist_results=theorist_results,
         timeout_seconds=theorist_timeout,
+        include_dirs=config.include_dirs,
     )
     if synthesis.success:
         print(

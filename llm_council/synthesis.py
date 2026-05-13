@@ -43,6 +43,7 @@ def run_synthesis(
     topic: str,
     theorist_results: list[TheoristResult],
     timeout_seconds: int = 600,
+    include_dirs: tuple[str, ...] = (),
 ) -> SynthesisResult:
     """Build the chairman prompt from successful theorist results and fire it."""
     successful = [r for r in theorist_results if r.success and r.content]
@@ -78,7 +79,12 @@ def run_synthesis(
         routing=spec.routing,
     )
     t0 = time.monotonic()
-    result = fire_theorist(chairman_spec, wrapped, timeout_seconds=timeout_seconds)
+    result = fire_theorist(
+        chairman_spec,
+        wrapped,
+        timeout_seconds=timeout_seconds,
+        include_dirs=include_dirs,
+    )
     duration = time.monotonic() - t0
     if not result.success:
         return SynthesisResult(
