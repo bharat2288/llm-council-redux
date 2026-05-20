@@ -21,6 +21,11 @@ nul
 council_history.json
 query-*.md
 
+# Ephemeral runtime state (council dispatch + orchestrate scratch)
+.council-dispatch-*.json
+.tmp-orchestrate-*.json
+.tmp-*.json
+
 # Specs (synced via session workflow, not git)
 specs/
 
