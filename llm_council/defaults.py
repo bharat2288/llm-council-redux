@@ -38,21 +38,21 @@ from llm_council.errors import ConfigError
 _FREE_3_MODEL_WITH_GEMINI_CLI: dict[str, Any] = {
     "mode": "free-3-model-with-gemini-cli",
     "theorists": [
-        {"name": "claude", "model": "claude-opus-4-7",     "effort": "xhigh", "routing": "claude-cli"},
+        {"name": "claude", "model": "claude-opus-4-8",     "effort": "xhigh", "routing": "claude-cli"},
         {"name": "gpt",    "model": "gpt-5.5",              "effort": "xhigh", "routing": "codex-cli"},
         {"name": "gemini", "model": "gemini-3-pro-preview", "effort": "high",  "routing": "gemini-cli"},
     ],
-    "synthesizer": {"model": "claude-opus-4-7", "effort": "xhigh", "routing": "claude-cli"},
+    "synthesizer": {"model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},
 }
 
 
 _FREE_2_MODEL: dict[str, Any] = {
     "mode": "free-2-model",
     "theorists": [
-        {"name": "claude", "model": "claude-opus-4-7", "effort": "xhigh", "routing": "claude-cli"},
+        {"name": "claude", "model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},
         {"name": "gpt",    "model": "gpt-5.5",          "effort": "xhigh", "routing": "codex-cli"},
     ],
-    "synthesizer": {"model": "claude-opus-4-7", "effort": "xhigh", "routing": "claude-cli"},
+    "synthesizer": {"model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},
 }
 
 
@@ -60,7 +60,7 @@ _STANDARD_PAID: dict[str, Any] = {
     "mode": "standard-paid",
     "theorists": [
         # First three: free subscription CLIs (same as free-3-model).
-        {"name": "claude", "model": "claude-opus-4-7",     "effort": "xhigh", "routing": "claude-cli"},
+        {"name": "claude", "model": "claude-opus-4-8",     "effort": "xhigh", "routing": "claude-cli"},
         {"name": "gpt",    "model": "gpt-5.5",              "effort": "xhigh", "routing": "codex-cli"},
         {"name": "gemini", "model": "gemini-3-pro-preview", "effort": "high",  "routing": "gemini-cli"},
         # Grok via OpenRouter — the only paid leg. xAI ships no subprocess
@@ -70,7 +70,7 @@ _STANDARD_PAID: dict[str, Any] = {
         {"name": "grok",   "model": "x-ai/grok-4.3",        "effort": "high",  "routing": "openrouter"},
     ],
     # Chairman stays on free claude-cli — no reason to pay for synthesis.
-    "synthesizer": {"model": "claude-opus-4-7", "effort": "xhigh", "routing": "claude-cli"},
+    "synthesizer": {"model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},
 }
 
 
