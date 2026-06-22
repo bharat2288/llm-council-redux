@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -54,11 +55,12 @@ def fire_theorist(
     a TheoristResult with success=False on failure so the caller can keep
     going with the survivors.
 
-    `include_dirs` is only used by gemini-cli routing. Other routings ignore
-    it (claude-cli runs with --dangerously-skip-permissions, codex-cli with
-    --sandbox read-only — both already see the whole filesystem; only
-    gemini-cli sandboxes paths outside its workspace and needs explicit
-    include flags for grounded mode)."""
+    `include_dirs` is used by gemini-cli (--include-directories) and agy-cli
+    (--add-dir) routing. The other routings ignore it (claude-cli runs with
+    --dangerously-skip-permissions, codex-cli with --sandbox read-only — both
+    already see the whole filesystem; gemini-cli and agy-cli sandbox paths
+    outside their workspace and need explicit include flags for grounded
+    mode)."""
     import time
 
     t0 = time.monotonic()
@@ -71,6 +73,9 @@ def fire_theorist(
             cost = 0.0
         elif spec.routing == "gemini-cli":
             content = _fire_gemini_cli(spec, prompt, timeout_seconds, include_dirs)
+            cost = 0.0
+        elif spec.routing == "agy-cli":
+            content = _fire_agy_cli(spec, prompt, timeout_seconds, include_dirs)
             cost = 0.0
         elif spec.routing == "openrouter":
             content, cost = _fire_openrouter(spec, prompt, timeout_seconds)
@@ -199,6 +204,129 @@ def _fire_gemini_cli(
     if include_dirs:
         args.extend(["--include-directories", ",".join(include_dirs)])
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
+
+
+# ---------- Antigravity (agy) ConPTY path ----------
+
+# Strip ANSI CSI/OSC/Fe escape sequences. agy writes its response to the
+# Windows console (not the stdout fd), so we capture it through a pseudo-console
+# and remove the terminal control codes to recover the text payload.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07]*\x07|\x1b[@-Z\\-_]")
+
+
+def _strip_ansi(s: str) -> str:
+    return _ANSI_RE.sub("", s)
+
+
+def _fire_agy_cli(
+    spec: TheoristSpec,
+    prompt: str,
+    timeout: int,
+    include_dirs: tuple[str, ...] = (),
+) -> str:
+    """Fire the Antigravity CLI (`agy`) in headless print mode.
+
+    agy is Google's agentic CLI; its default model is "Gemini 3.1 Pro (High)".
+    Unlike claude-cli / codex-cli / gemini-cli, agy writes its response to the
+    Windows console rather than the stdout file descriptor, so an ordinary
+    subprocess pipe captures nothing. We give it a pseudo-console (ConPTY via
+    pywinpty) that we own and read, then strip the terminal escapes.
+
+    Verified 2026-06-22: `-p` print mode under a PTY emits ONLY the model
+    response (no spinner/header/token-count chrome) preceded by a few
+    terminal-init escapes, all removed by `_strip_ansi`.
+
+    `spec.effort` is recorded in the artifact but not passed through: agy bakes
+    the effort into the model label (e.g. "Gemini 3.1 Pro (High)" vs "(Low)"),
+    so there is no separate effort flag — same shape as gemini-cli.
+    """
+    import threading
+    import time
+
+    exe = _resolve_binary(
+        "agy",
+        "agy (Antigravity CLI) not on PATH. Install it and run `agy` once to "
+        "authenticate with Google Code Assist, then re-run.",
+    )
+    try:
+        from winpty import PtyProcess  # pywinpty — Windows ConPTY wrapper
+    except ImportError as exc:
+        raise RoutingError(
+            "pywinpty is required for agy-cli routing (agy writes to the "
+            "console, not stdout, so its output is captured through a "
+            "pseudo-console). Install with `pip install pywinpty`, or route "
+            "this theorist via gemini-cli / openrouter instead."
+        ) from exc
+
+    # agy's --print takes the prompt as the flag VALUE — it cannot read the
+    # prompt from stdin (`echo ... | agy --print` errors 'flag needs an
+    # argument'). So the whole system-wrapped prompt rides as one argv element.
+    # Windows command lines cap near 32767 chars; guard so a huge grounded
+    # prompt fails loud rather than truncating silently.
+    wrapped = _wrap_with_system(prompt)
+    if len(wrapped) > 30000:
+        raise TheoristFailure(
+            spec.name,
+            f"prompt is {len(wrapped)} chars; agy passes it as a command-line "
+            "argument and Windows caps the command line near 32k. Trim the "
+            "grounding preamble or route this theorist via openrouter.",
+        )
+
+    # --dangerously-skip-permissions: one-shot theorist; auto-approve any file
+    #   read so a grounded run doesn't stall on a permission prompt (matches
+    #   claude-cli routing). --add-dir extends the workspace for grounded reads
+    #   (agy's equivalent of gemini-cli's --include-directories).
+    argv = [
+        exe,
+        "--print",
+        wrapped,
+        "--model",
+        spec.model,
+        "--dangerously-skip-permissions",
+    ]
+    for d in include_dirs:
+        argv.extend(["--add-dir", d])
+
+    # Wide PTY so agy doesn't hard-wrap the response into the captured stream.
+    proc = PtyProcess.spawn(argv, dimensions=(50, 500))
+
+    # pywinpty's read() blocks until data or EOF, so a deadline check inside
+    # the loop can't fire while a truly hung agy holds the pipe. A watchdog
+    # timer force-terminates the process after `timeout`; the blocking read
+    # then unblocks via EOFError and we report the timeout.
+    timed_out = threading.Event()
+
+    def _watchdog() -> None:
+        timed_out.set()
+        try:
+            proc.terminate(force=True)
+        except Exception:  # noqa: BLE001 — best-effort kill
+            pass
+
+    timer = threading.Timer(timeout, _watchdog)
+    timer.start()
+    chunks: list[str] = []
+    try:
+        while True:
+            try:
+                data = proc.read(8192)
+            except EOFError:
+                break
+            if data:
+                chunks.append(data)
+            elif not proc.isalive():
+                break
+    finally:
+        timer.cancel()
+
+    if timed_out.is_set():
+        raise TheoristFailure(
+            spec.name, f"agy print mode timed out after {timeout}s and was killed"
+        )
+    out = _strip_ansi("".join(chunks)).strip()
+    if not out:
+        raise TheoristFailure(spec.name, "agy returned empty output")
+    return out
 
 
 def _wrap_with_system(prompt: str) -> str:

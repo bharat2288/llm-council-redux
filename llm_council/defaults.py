@@ -17,9 +17,16 @@ both callers automatically; no two-copies-in-sync drift.
 
 Operating principle (encoded structurally below): use free subscription
 CLIs wherever a provider ships one. Today that means claude-cli (Claude),
-codex-cli (GPT), gemini-cli (Gemini). The only theorist that genuinely
-requires paid routing is Grok — xAI has no subprocess CLI — so it's the
-sole `routing: openrouter` theorist in `standard-paid`.
+codex-cli (GPT), and agy / Antigravity CLI (Gemini 3.1 Pro). The only
+theorist that genuinely requires paid routing is Grok — xAI has no
+subprocess CLI — so it's the sole `routing: openrouter` theorist in
+`standard-paid`.
+
+Gemini routing migrated from gemini-cli to agy (Antigravity) on 2026-06-22:
+Google sunset the standalone Gemini CLI in favor of Antigravity. agy writes
+to the console rather than stdout, so agy-cli routing captures it through a
+ConPTY (see routing._fire_agy_cli). The legacy `free-3-model-with-gemini-cli`
+mode is kept as a fallback while the `gemini` binary still works.
 
 Reasoning-grade only: the slugs here are deliberately reasoning-grade.
 A fast-model council defeats the council's purpose; the skill never
@@ -35,6 +42,23 @@ from llm_council.errors import ConfigError
 
 # -- canonical per-mode configs --------------------------------------------
 
+# Default mode. Gemini rides on agy (Antigravity CLI), whose default model is
+# "Gemini 3.1 Pro (High)" — passed explicitly so the run doesn't depend on the
+# operator's local agy default. agy has no effort flag (effort is baked into
+# the model label), so `effort` here is recorded-only, same as gemini-cli.
+_FREE_3_MODEL_WITH_AGY: dict[str, Any] = {
+    "mode": "free-3-model-with-agy",
+    "theorists": [
+        {"name": "claude", "model": "claude-opus-4-8",         "effort": "xhigh", "routing": "claude-cli"},
+        {"name": "gpt",    "model": "gpt-5.5",                  "effort": "xhigh", "routing": "codex-cli"},
+        {"name": "gemini", "model": "Gemini 3.1 Pro (High)",    "effort": "high",  "routing": "agy-cli"},
+    ],
+    "synthesizer": {"model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},
+}
+
+
+# Legacy fallback — kept while the standalone `gemini` binary still works.
+# Prefer `free-3-model-with-agy`; Google sunset the standalone Gemini CLI.
 _FREE_3_MODEL_WITH_GEMINI_CLI: dict[str, Any] = {
     "mode": "free-3-model-with-gemini-cli",
     "theorists": [
@@ -59,10 +83,10 @@ _FREE_2_MODEL: dict[str, Any] = {
 _STANDARD_PAID: dict[str, Any] = {
     "mode": "standard-paid",
     "theorists": [
-        # First three: free subscription CLIs (same as free-3-model).
-        {"name": "claude", "model": "claude-opus-4-8",     "effort": "xhigh", "routing": "claude-cli"},
-        {"name": "gpt",    "model": "gpt-5.5",              "effort": "xhigh", "routing": "codex-cli"},
-        {"name": "gemini", "model": "gemini-3-pro-preview", "effort": "high",  "routing": "gemini-cli"},
+        # First three: free subscription CLIs (same as free-3-model-with-agy).
+        {"name": "claude", "model": "claude-opus-4-8",      "effort": "xhigh", "routing": "claude-cli"},
+        {"name": "gpt",    "model": "gpt-5.5",               "effort": "xhigh", "routing": "codex-cli"},
+        {"name": "gemini", "model": "Gemini 3.1 Pro (High)", "effort": "high",  "routing": "agy-cli"},
         # Grok via OpenRouter — the only paid leg. xAI ships no subprocess
         # CLI as of 2026-05-07. OpenRouter's reasoning.effort ceiling is
         # `high`, so don't pass xhigh here even though Grok itself supports
@@ -75,6 +99,7 @@ _STANDARD_PAID: dict[str, Any] = {
 
 
 _BY_MODE: dict[str, dict[str, Any]] = {
+    "free-3-model-with-agy": _FREE_3_MODEL_WITH_AGY,
     "free-3-model-with-gemini-cli": _FREE_3_MODEL_WITH_GEMINI_CLI,
     "free-2-model": _FREE_2_MODEL,
     "standard-paid": _STANDARD_PAID,

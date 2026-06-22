@@ -16,19 +16,28 @@ from typing import Any
 from llm_council.errors import ConfigError
 
 
-VALID_ROUTINGS = frozenset({"claude-cli", "codex-cli", "gemini-cli", "openrouter"})
+VALID_ROUTINGS = frozenset(
+    {"claude-cli", "codex-cli", "gemini-cli", "agy-cli", "openrouter"}
+)
 # Effort vocabulary differs per routing — see Effort table in SKILL.md:
 #   claude-cli   accepts low / medium / high / xhigh / max
 #   codex-cli    accepts low / medium / high / xhigh
 #   openrouter   accepts low / medium / high
 #   gemini-cli   exposes no effort flag (effort is recorded but unused)
+#   agy-cli      exposes no effort flag — effort is baked into the model
+#                label, e.g. "Gemini 3.1 Pro (High)" (recorded but unused)
 # We accept the union here and let each routing's underlying CLI/API reject
 # values it can't handle. This is intentional: validating per-routing in
 # config would require duplicating the matrix here AND in routing.py, and
 # the CLI errors are already clear when an unsupported value reaches them.
 VALID_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
 VALID_MODES = frozenset(
-    {"standard-paid", "free-2-model", "free-3-model-with-gemini-cli"}
+    {
+        "standard-paid",
+        "free-2-model",
+        "free-3-model-with-agy",
+        "free-3-model-with-gemini-cli",
+    }
 )
 
 

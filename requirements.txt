@@ -2,3 +2,7 @@ aiohttp>=3.8.0
 flask>=2.0.0
 flask-cors>=3.0.0
 PyMuPDF>=1.23.0
+# agy-cli routing captures Antigravity CLI output through a Windows ConPTY.
+# Only needed on Windows for the `agy-cli` routing; imported lazily so other
+# routings don't require it.
+pywinpty>=2.0.0; sys_platform == "win32"
