@@ -35,8 +35,8 @@ REM   C:\Users\bhara\dev\specs\codex-workflow-system\playbook-credential-sop.md
 REM   C:\Users\bhara\dev\specs\codex-workflow-system\playbook-credential-hardening.md
 REM
 REM Operating principle: free wherever possible. Subscription CLIs
-REM (claude-cli, codex-cli, gemini-cli) don't need OPENROUTER_API_KEY
-REM at all — only the Grok theorist on standard-paid does.
+REM (claude-cli, codex-cli, agy-cli) don't need OPENROUTER_API_KEY
+REM at all — only the Grok and GLM theorists on standard-paid do.
 REM
 REM ============================================================
 

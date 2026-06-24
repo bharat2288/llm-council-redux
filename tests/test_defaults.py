@@ -25,22 +25,30 @@ from llm_council.errors import ConfigError
 
 class TestDefaultConfigForMode:
     def test_free_3_model_returns_three_subscription_theorists(self) -> None:
-        cfg = default_config_for_mode("free-3-model-with-gemini-cli")
-        assert cfg["mode"] == "free-3-model-with-gemini-cli"
+        cfg = default_config_for_mode("free-3-model-with-agy")
+        assert cfg["mode"] == "free-3-model-with-agy"
         names = [t["name"] for t in cfg["theorists"]]
         assert names == ["claude", "gpt", "gemini"]
         # All theorists on subscription CLIs (no openrouter routing).
         for t in cfg["theorists"]:
-            assert t["routing"] in ("claude-cli", "codex-cli", "gemini-cli")
+            assert t["routing"] in ("claude-cli", "codex-cli", "agy-cli")
         # Reasoning-grade defaults.
-        assert cfg["theorists"][0]["model"] == "claude-opus-4-7"
+        assert cfg["theorists"][0]["model"] == "claude-opus-4-8"
         assert cfg["theorists"][0]["effort"] == "xhigh"
         assert cfg["theorists"][1]["model"] == "gpt-5.5"
         assert cfg["theorists"][1]["effort"] == "xhigh"
-        assert cfg["theorists"][2]["model"] == "gemini-3-pro-preview"
+        assert cfg["theorists"][2]["model"] == "Gemini 3.1 Pro (High)"
+        assert cfg["theorists"][2]["routing"] == "agy-cli"
         # Chairman is also subscription (free).
         assert cfg["synthesizer"]["routing"] == "claude-cli"
-        assert cfg["synthesizer"]["model"] == "claude-opus-4-7"
+        assert cfg["synthesizer"]["model"] == "claude-opus-4-8"
+
+    def test_legacy_free_3_gemini_cli_mode_remains_available(self) -> None:
+        cfg = default_config_for_mode("free-3-model-with-gemini-cli")
+        assert cfg["mode"] == "free-3-model-with-gemini-cli"
+        assert cfg["theorists"][2]["name"] == "gemini"
+        assert cfg["theorists"][2]["routing"] == "gemini-cli"
+        assert cfg["theorists"][2]["model"] == "gemini-3-pro-preview"
 
     def test_free_2_model_drops_gemini(self) -> None:
         cfg = default_config_for_mode("free-2-model")
@@ -51,27 +59,30 @@ class TestDefaultConfigForMode:
         for t in cfg["theorists"]:
             assert t["routing"] in ("claude-cli", "codex-cli")
         # Same reasoning-grade defaults as free-3-model for the two it includes.
-        assert cfg["theorists"][0]["model"] == "claude-opus-4-7"
+        assert cfg["theorists"][0]["model"] == "claude-opus-4-8"
         assert cfg["theorists"][0]["effort"] == "xhigh"
 
-    def test_standard_paid_routes_only_grok_via_openrouter(self) -> None:
-        # Standard-paid is "free-3 + Grok via OpenRouter" — the only theorist
-        # on openrouter is grok, since the others have free subscription CLIs.
+    def test_standard_paid_routes_grok_and_glm_via_openrouter(self) -> None:
+        # Standard-paid is "free-3 + paid frontier perspectives" — Claude,
+        # GPT, and Gemini stay on subscription CLIs, while Grok and GLM
+        # route through OpenRouter.
         # This is the operating principle ("free wherever possible") encoded
         # as a structural test.
         cfg = default_config_for_mode("standard-paid")
         assert cfg["mode"] == "standard-paid"
         names = [t["name"] for t in cfg["theorists"]]
-        assert names == ["claude", "gpt", "gemini", "grok"]
+        assert names == ["claude", "gpt", "gemini", "grok", "glm"]
 
         openrouter_theorists = [t for t in cfg["theorists"] if t["routing"] == "openrouter"]
-        assert len(openrouter_theorists) == 1, (
-            "standard-paid must route only Grok via openrouter; "
+        assert len(openrouter_theorists) == 2, (
+            "standard-paid must route Grok and GLM via openrouter; "
             f"found {len(openrouter_theorists)} on openrouter: "
             f"{[t['name'] for t in openrouter_theorists]}"
         )
-        assert openrouter_theorists[0]["name"] == "grok"
-        assert openrouter_theorists[0]["model"] == "x-ai/grok-4.3"
+        assert [(t["name"], t["model"]) for t in openrouter_theorists] == [
+            ("grok", "x-ai/grok-4.3"),
+            ("glm", "z-ai/glm-5.2"),
+        ]
 
         # Chairman stays on subscription (free) — no reason to pay for synthesis.
         assert cfg["synthesizer"]["routing"] == "claude-cli"
@@ -89,6 +100,7 @@ class TestDefaultConfigForMode:
         from llm_council.config import parse_config
 
         for mode in (
+            "free-3-model-with-agy",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",
@@ -101,10 +113,10 @@ class TestDefaultConfigForMode:
     def test_returned_dict_is_independent_per_call(self) -> None:
         # Mutating one returned config must not affect a subsequent call.
         # (Defends against `return _CONSTANT_DICT` style implementations.)
-        a = default_config_for_mode("free-3-model-with-gemini-cli")
+        a = default_config_for_mode("free-3-model-with-agy")
         a["theorists"][0]["model"] = "MUTATED"
-        b = default_config_for_mode("free-3-model-with-gemini-cli")
-        assert b["theorists"][0]["model"] == "claude-opus-4-7"
+        b = default_config_for_mode("free-3-model-with-agy")
+        assert b["theorists"][0]["model"] == "claude-opus-4-8"
 
 
 # -- CLI subcommand --------------------------------------------------------
@@ -126,15 +138,17 @@ class TestDefaultsCLI:
         )
 
     def test_known_mode_prints_json_exits_zero(self) -> None:
-        result = self._run("defaults", "--mode", "free-3-model-with-gemini-cli")
+        result = self._run("defaults", "--mode", "free-3-model-with-agy")
         assert result.returncode == 0, result.stderr
         # stdout parses as JSON.
         cfg = json.loads(result.stdout)
-        assert cfg["mode"] == "free-3-model-with-gemini-cli"
+        assert cfg["mode"] == "free-3-model-with-agy"
         assert len(cfg["theorists"]) == 3
+        assert cfg["theorists"][2]["routing"] == "agy-cli"
 
     def test_each_known_mode_prints_valid_json(self) -> None:
         for mode in (
+            "free-3-model-with-agy",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",

@@ -17,10 +17,9 @@ both callers automatically; no two-copies-in-sync drift.
 
 Operating principle (encoded structurally below): use free subscription
 CLIs wherever a provider ships one. Today that means claude-cli (Claude),
-codex-cli (GPT), and agy / Antigravity CLI (Gemini 3.1 Pro). The only
-theorist that genuinely requires paid routing is Grok — xAI has no
-subprocess CLI — so it's the sole `routing: openrouter` theorist in
-`standard-paid`.
+codex-cli (GPT), and agy / Antigravity CLI (Gemini 3.1 Pro). The paid
+standard council adds frontier perspectives that do not have local
+subscription-CLI routing here, so Grok and GLM ride through OpenRouter.
 
 Gemini routing migrated from gemini-cli to agy (Antigravity) on 2026-06-22:
 Google sunset the standalone Gemini CLI in favor of Antigravity. agy writes
@@ -87,11 +86,12 @@ _STANDARD_PAID: dict[str, Any] = {
         {"name": "claude", "model": "claude-opus-4-8",      "effort": "xhigh", "routing": "claude-cli"},
         {"name": "gpt",    "model": "gpt-5.5",               "effort": "xhigh", "routing": "codex-cli"},
         {"name": "gemini", "model": "Gemini 3.1 Pro (High)", "effort": "high",  "routing": "agy-cli"},
-        # Grok via OpenRouter — the only paid leg. xAI ships no subprocess
-        # CLI as of 2026-05-07. OpenRouter's reasoning.effort ceiling is
+        # Paid legs via OpenRouter. OpenRouter's reasoning.effort ceiling is
         # `high`, so don't pass xhigh here even though Grok itself supports
-        # deeper reasoning — OpenRouter would reject it.
+        # deeper reasoning — OpenRouter would reject it. GLM-5.2 is exposed
+        # by OpenRouter as z-ai/glm-5.2 (verified 2026-06-24).
         {"name": "grok",   "model": "x-ai/grok-4.3",        "effort": "high",  "routing": "openrouter"},
+        {"name": "glm",    "model": "z-ai/glm-5.2",         "effort": "high",  "routing": "openrouter"},
     ],
     # Chairman stays on free claude-cli — no reason to pay for synthesis.
     "synthesizer": {"model": "claude-opus-4-8", "effort": "xhigh", "routing": "claude-cli"},

@@ -39,17 +39,17 @@ def _make_config(topic: str = "Test council topic") -> Config:
     return Config(
         topic=topic,
         project="test-project",
-        mode="free-3-model-with-gemini-cli",
+        mode="free-3-model-with-agy",
         theorists=(
-            TheoristSpec(name="claude", model="claude-opus-4-7",
+            TheoristSpec(name="claude", model="claude-opus-4-8",
                          effort="xhigh", routing="claude-cli"),
             TheoristSpec(name="gpt", model="gpt-5.5",
                          effort="xhigh", routing="codex-cli"),
-            TheoristSpec(name="gemini", model="gemini-3-pro-preview",
-                         effort="high", routing="gemini-cli"),
+            TheoristSpec(name="gemini", model="Gemini 3.1 Pro (High)",
+                         effort="high", routing="agy-cli"),
         ),
         synthesizer=SynthesizerSpec(
-            model="claude-opus-4-7", effort="xhigh", routing="claude-cli"
+            model="claude-opus-4-8", effort="xhigh", routing="claude-cli"
         ),
         artifact=ArtifactSpec(status="draft", topic_slug="test-council-topic"),
     )
@@ -125,7 +125,7 @@ class TestPersistTheorist:
     def test_writes_md_and_json_for_successful_result(self, tmp_path: Path) -> None:
         run_dir = tmp_path / "run"
         (run_dir / "theorists").mkdir(parents=True)
-        r = _ok_result("claude", "claude-opus-4-7", "claude-cli", "## Synthesis\nContent")
+        r = _ok_result("claude", "claude-opus-4-8", "claude-cli", "## Synthesis\nContent")
         run_state.persist_theorist(run_dir, r)
         assert (run_dir / "theorists" / "claude.md").read_text(encoding="utf-8") \
                == "## Synthesis\nContent"
@@ -160,7 +160,7 @@ class TestUpdateTheoristState:
         run_state.init_run_json(run_dir, config=cfg, output_dir=tmp_path,
                                 started_at=started)
 
-        r_ok = _ok_result("claude", "claude-opus-4-7", "claude-cli", "x" * 1000)
+        r_ok = _ok_result("claude", "claude-opus-4-8", "claude-cli", "x" * 1000)
         run_state.update_theorist_state(run_dir, r_ok)
         r_bad = _fail_result("gpt", "gpt-5.5", "codex-cli", "timed out after 600s")
         run_state.update_theorist_state(run_dir, r_bad)
@@ -185,10 +185,10 @@ class TestLoadPersistedTheorists:
                                 started_at=started)
         # Persist only 2 of 3.
         run_state.persist_theorist(
-            run_dir, _ok_result("claude", "claude-opus-4-7", "claude-cli", "claude body")
+            run_dir, _ok_result("claude", "claude-opus-4-8", "claude-cli", "claude body")
         )
         run_state.persist_theorist(
-            run_dir, _ok_result("gemini", "gemini-3-pro-preview", "gemini-cli", "gemini body")
+            run_dir, _ok_result("gemini", "Gemini 3.1 Pro (High)", "agy-cli", "gemini body")
         )
         loaded = run_state.load_persisted_theorists(run_dir)
         assert [r.name for r in loaded] == ["claude", "gemini"]
@@ -203,10 +203,10 @@ class TestLoadPersistedTheorists:
                                 started_at=started)
         # Persist in reverse order.
         run_state.persist_theorist(
-            run_dir, _ok_result("gemini", "gemini-3-pro-preview", "gemini-cli", "g")
+            run_dir, _ok_result("gemini", "Gemini 3.1 Pro (High)", "agy-cli", "g")
         )
         run_state.persist_theorist(
-            run_dir, _ok_result("claude", "claude-opus-4-7", "claude-cli", "c")
+            run_dir, _ok_result("claude", "claude-opus-4-8", "claude-cli", "c")
         )
         loaded = run_state.load_persisted_theorists(run_dir)
         assert [r.name for r in loaded] == ["claude", "gemini"]
@@ -236,11 +236,11 @@ class TestResumeCLI:
         )
         # 2 successful theorists + 1 timeout, just like the route-resolver runs.
         for r in [
-            _ok_result("claude", "claude-opus-4-7", "claude-cli",
+            _ok_result("claude", "claude-opus-4-8", "claude-cli",
                        "## Position\nClaude says X."),
             _fail_result("gpt", "gpt-5.5", "codex-cli",
                          "subprocess timed out after 600s and was force-killed"),
-            _ok_result("gemini", "gemini-3-pro-preview", "gemini-cli",
+            _ok_result("gemini", "Gemini 3.1 Pro (High)", "agy-cli",
                        "## Position\nGemini says Y."),
         ]:
             run_state.persist_theorist(run_dir, r)
@@ -306,7 +306,7 @@ class TestResumeCLI:
         )
         # Only one success on disk.
         run_state.persist_theorist(
-            run_dir, _ok_result("claude", "claude-opus-4-7", "claude-cli", "only one")
+            run_dir, _ok_result("claude", "claude-opus-4-8", "claude-cli", "only one")
         )
         rc = cli_module.main(["resume", "--run-dir", str(run_dir)])
         assert rc == 3

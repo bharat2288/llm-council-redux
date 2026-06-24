@@ -6,7 +6,7 @@ file, separate engine, separate port).
 
 Tests use Flask's test client — no real socket bind, no real subprocesses
 fired. Theorist routing is mocked so council fires don't actually shell
-out to claude-cli / codex-cli / gemini-cli (those are tested
+out to claude-cli / codex-cli / agy-cli (those are tested
 end-to-end via the CLI skill itself; the daemon just wraps the engine).
 """
 from __future__ import annotations
@@ -92,15 +92,17 @@ class TestDefaultsEndpoint:
     """
 
     def test_known_mode_returns_canonical_config(self, client) -> None:
-        response = client.get("/api/topfour/defaults?mode=free-3-model-with-gemini-cli")
+        response = client.get("/api/topfour/defaults?mode=free-3-model-with-agy")
         assert response.status_code == 200
         assert response.is_json
         body = response.get_json()
-        assert body["mode"] == "free-3-model-with-gemini-cli"
+        assert body["mode"] == "free-3-model-with-agy"
         assert len(body["theorists"]) == 3
+        assert body["theorists"][2]["routing"] == "agy-cli"
 
     def test_each_known_mode_round_trips(self, client) -> None:
         for mode in (
+            "free-3-model-with-agy",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",
@@ -122,6 +124,15 @@ class TestDefaultsEndpoint:
         http_body = response.get_json()
         module_body = default_config_for_mode(mode)
         assert http_body == module_body
+        assert [t["name"] for t in http_body["theorists"]] == [
+            "claude",
+            "gpt",
+            "gemini",
+            "grok",
+            "glm",
+        ]
+        assert http_body["theorists"][4]["routing"] == "openrouter"
+        assert http_body["theorists"][4]["model"] == "z-ai/glm-5.2"
 
     def test_unknown_mode_returns_400(self, client) -> None:
         response = client.get("/api/topfour/defaults?mode=not-a-real-mode")
@@ -158,7 +169,7 @@ class TestStartEndpoint:
         body = {
             "topic": "Test topic for council fire — small concrete question.",
             "project": "meshbook",
-            "mode": "free-3-model-with-gemini-cli",
+            "mode": "free-3-model-with-agy",
         }
         body.update(overrides)
         return body
@@ -300,7 +311,7 @@ class TestStreamEndpoint:
         body = {
             "topic": "Test SSE streaming with mocked theorists.",
             "project": "meshbook",
-            "mode": "free-3-model-with-gemini-cli",
+            "mode": "free-3-model-with-agy",
         }
         body.update(overrides)
         return body
@@ -391,7 +402,7 @@ class TestCancellation:
     the cancel.
 
     True subprocess termination (killing in-flight claude-cli /
-    codex-cli / gemini-cli) is deferred to v0.2 — would require
+    codex-cli / agy-cli) is deferred to v0.2 — would require
     fire_theorist to expose a Popen handle for the worker to kill.
     """
 
@@ -399,7 +410,7 @@ class TestCancellation:
         body = {
             "topic": "Test cancellation flow.",
             "project": "meshbook",
-            "mode": "free-3-model-with-gemini-cli",
+            "mode": "free-3-model-with-agy",
         }
         body.update(overrides)
         return body
