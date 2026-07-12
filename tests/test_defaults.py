@@ -35,13 +35,15 @@ class TestDefaultConfigForMode:
         # Reasoning-grade defaults.
         assert cfg["theorists"][0]["model"] == "claude-opus-4-8"
         assert cfg["theorists"][0]["effort"] == "xhigh"
-        assert cfg["theorists"][1]["model"] == "gpt-5.5"
-        assert cfg["theorists"][1]["effort"] == "xhigh"
+        assert cfg["theorists"][1]["model"] == "gpt-5.6-terra"
+        assert cfg["theorists"][1]["effort"] == "max"
         assert cfg["theorists"][2]["model"] == "Gemini 3.1 Pro (High)"
         assert cfg["theorists"][2]["routing"] == "agy-cli"
-        # Chairman is also subscription (free).
-        assert cfg["synthesizer"]["routing"] == "claude-cli"
-        assert cfg["synthesizer"]["model"] == "claude-opus-4-8"
+        # Chairman is also subscription (free) — gpt-5.6-sol so the chair
+        # doesn't share its exact model with any participant.
+        assert cfg["synthesizer"]["routing"] == "codex-cli"
+        assert cfg["synthesizer"]["model"] == "gpt-5.6-sol"
+        assert cfg["synthesizer"]["effort"] == "max"
 
     def test_legacy_free_3_gemini_cli_mode_remains_available(self) -> None:
         cfg = default_config_for_mode("free-3-model-with-gemini-cli")
@@ -49,6 +51,22 @@ class TestDefaultConfigForMode:
         assert cfg["theorists"][2]["name"] == "gemini"
         assert cfg["theorists"][2]["routing"] == "gemini-cli"
         assert cfg["theorists"][2]["model"] == "gemini-3-pro-preview"
+
+    def test_free_4_model_with_kimi_adds_kimi_subscription_theorist(self) -> None:
+        cfg = default_config_for_mode("free-4-model-with-kimi")
+        assert cfg["mode"] == "free-4-model-with-kimi"
+        names = [t["name"] for t in cfg["theorists"]]
+        assert names == ["claude", "gpt", "gemini", "kimi"]
+        for t in cfg["theorists"]:
+            assert t["routing"] in ("claude-cli", "codex-cli", "agy-cli", "kimi-cli")
+        assert cfg["theorists"][3] == {
+            "name": "kimi",
+            "model": "kimi-default",
+            "effort": "high",
+            "routing": "kimi-cli",
+        }
+        assert cfg["synthesizer"]["routing"] == "codex-cli"
+        assert cfg["synthesizer"]["model"] == "gpt-5.6-sol"
 
     def test_free_2_model_drops_gemini(self) -> None:
         cfg = default_config_for_mode("free-2-model")
@@ -85,7 +103,7 @@ class TestDefaultConfigForMode:
         ]
 
         # Chairman stays on subscription (free) — no reason to pay for synthesis.
-        assert cfg["synthesizer"]["routing"] == "claude-cli"
+        assert cfg["synthesizer"]["routing"] == "codex-cli"
 
     def test_unknown_mode_raises_config_error(self) -> None:
         with pytest.raises(ConfigError) as excinfo:
@@ -101,6 +119,7 @@ class TestDefaultConfigForMode:
 
         for mode in (
             "free-3-model-with-agy",
+            "free-4-model-with-kimi",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",
@@ -109,6 +128,68 @@ class TestDefaultConfigForMode:
             full = {**base, "topic": "test", "project": "demo"}
             cfg = parse_config(full)  # raises on shape problems
             assert cfg.mode == mode
+
+    def test_fable_toggle_off_by_default(self, monkeypatch) -> None:
+        monkeypatch.delenv("LLM_COUNCIL_USE_FABLE", raising=False)
+        cfg = default_config_for_mode("free-4-model-with-kimi")
+        assert cfg["theorists"][0]["model"] == "claude-opus-4-8"
+        assert cfg["theorists"][1]["model"] == "gpt-5.6-terra"
+        assert cfg["synthesizer"]["model"] == "gpt-5.6-sol"
+
+    def test_fable_toggle_rebalances_every_mode(self, monkeypatch) -> None:
+        # LC-4 (ADR-003): Fable takes the claude seat and the chair; sol
+        # vacates the chair and takes the gpt participant seat.
+        monkeypatch.setenv("LLM_COUNCIL_USE_FABLE", "1")
+        for mode in (
+            "free-3-model-with-agy",
+            "free-4-model-with-kimi",
+            "free-3-model-with-gemini-cli",
+            "free-2-model",
+            "standard-paid",
+        ):
+            cfg = default_config_for_mode(mode)
+            by_name = {t["name"]: t for t in cfg["theorists"]}
+            assert by_name["claude"]["model"] == "claude-fable-5", mode
+            assert by_name["claude"]["effort"] == "max", mode
+            assert by_name["claude"]["routing"] == "claude-cli", mode
+            assert by_name["gpt"]["model"] == "gpt-5.6-sol", mode
+            assert by_name["gpt"]["effort"] == "max", mode
+            assert cfg["synthesizer"] == {
+                "model": "claude-fable-5",
+                "effort": "max",
+                "routing": "claude-cli",
+            }, mode
+            # Non-claude/gpt seats untouched.
+            if "gemini" in by_name:
+                assert by_name["gemini"]["model"] in (
+                    "Gemini 3.1 Pro (High)",
+                    "gemini-3-pro-preview",
+                ), mode
+
+    def test_fable_toggle_output_passes_config_validation(self, monkeypatch) -> None:
+        from llm_council.config import parse_config
+
+        monkeypatch.setenv("LLM_COUNCIL_USE_FABLE", "true")
+        base = default_config_for_mode("free-4-model-with-kimi")
+        cfg = parse_config({**base, "topic": "test", "project": "demo"})
+        assert cfg.synthesizer.model == "claude-fable-5"
+
+    def test_fable_toggle_does_not_pollute_canonical_presets(self, monkeypatch) -> None:
+        # The rebalance must operate on the deep copy, never the module
+        # constants — a toggled call followed by an untoggled call returns
+        # the canonical config.
+        monkeypatch.setenv("LLM_COUNCIL_USE_FABLE", "1")
+        default_config_for_mode("free-4-model-with-kimi")
+        monkeypatch.setenv("LLM_COUNCIL_USE_FABLE", "0")
+        cfg = default_config_for_mode("free-4-model-with-kimi")
+        assert cfg["theorists"][0]["model"] == "claude-opus-4-8"
+        assert cfg["synthesizer"]["model"] == "gpt-5.6-sol"
+
+    def test_fable_env_gibberish_raises_config_error(self, monkeypatch) -> None:
+        monkeypatch.setenv("LLM_COUNCIL_USE_FABLE", "maybe")
+        with pytest.raises(ConfigError) as excinfo:
+            default_config_for_mode("free-2-model")
+        assert "LLM_COUNCIL_USE_FABLE" in str(excinfo.value)
 
     def test_returned_dict_is_independent_per_call(self) -> None:
         # Mutating one returned config must not affect a subsequent call.
@@ -149,6 +230,7 @@ class TestDefaultsCLI:
     def test_each_known_mode_prints_valid_json(self) -> None:
         for mode in (
             "free-3-model-with-agy",
+            "free-4-model-with-kimi",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",

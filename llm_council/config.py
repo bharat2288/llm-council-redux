@@ -17,15 +17,19 @@ from llm_council.errors import ConfigError
 
 
 VALID_ROUTINGS = frozenset(
-    {"claude-cli", "codex-cli", "gemini-cli", "agy-cli", "openrouter"}
+    {"claude-cli", "codex-cli", "gemini-cli", "agy-cli", "kimi-cli", "openrouter"}
 )
 # Effort vocabulary differs per routing — see Effort table in SKILL.md:
 #   claude-cli   accepts low / medium / high / xhigh / max
-#   codex-cli    accepts low / medium / high / xhigh
+#   codex-cli    accepts low / medium / high / xhigh / max (max verified on
+#                gpt-5.6-* 2026-07-12). GPT-5.6 also exposes `ultra`, which is
+#                deliberately NOT in VALID_EFFORTS: ultra enables subagent
+#                delegation — pointless overhead for one-shot council calls.
 #   openrouter   accepts low / medium / high
 #   gemini-cli   exposes no effort flag (effort is recorded but unused)
 #   agy-cli      exposes no effort flag — effort is baked into the model
 #                label, e.g. "Gemini 3.1 Pro (High)" (recorded but unused)
+#   kimi-cli     exposes no effort flag (effort is recorded but unused)
 # We accept the union here and let each routing's underlying CLI/API reject
 # values it can't handle. This is intentional: validating per-routing in
 # config would require duplicating the matrix here AND in routing.py, and
@@ -35,6 +39,7 @@ VALID_MODES = frozenset(
     {
         "standard-paid",
         "free-2-model",
+        "free-4-model-with-kimi",
         "free-3-model-with-agy",
         "free-3-model-with-gemini-cli",
     }
@@ -207,6 +212,8 @@ def _name_from_model(model: str) -> str:
         return "gemini"
     if "grok" in lower:
         return "grok"
+    if "kimi" in lower:
+        return "kimi"
     return model.split("/")[-1].split("-")[0]
 
 
