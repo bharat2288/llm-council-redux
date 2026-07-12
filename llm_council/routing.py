@@ -55,12 +55,12 @@ def fire_theorist(
     a TheoristResult with success=False on failure so the caller can keep
     going with the survivors.
 
-    `include_dirs` is used by gemini-cli (--include-directories) and agy-cli
-    (--add-dir) routing. The other routings ignore it (claude-cli runs with
-    --dangerously-skip-permissions, codex-cli with --sandbox read-only — both
-    already see the whole filesystem; gemini-cli and agy-cli sandbox paths
-    outside their workspace and need explicit include flags for grounded
-    mode)."""
+    `include_dirs` is used by gemini-cli (--include-directories), agy-cli
+    (--add-dir), and kimi-cli (--add-dir) routing. The other routings ignore
+    it (claude-cli runs with --dangerously-skip-permissions, codex-cli with
+    --sandbox read-only — both already see the whole filesystem; gemini-cli,
+    agy-cli, and kimi-cli sandbox paths outside their workspace and need
+    explicit include flags for grounded mode)."""
     import time
 
     t0 = time.monotonic()
@@ -76,6 +76,9 @@ def fire_theorist(
             cost = 0.0
         elif spec.routing == "agy-cli":
             content = _fire_agy_cli(spec, prompt, timeout_seconds, include_dirs)
+            cost = 0.0
+        elif spec.routing == "kimi-cli":
+            content = _fire_kimi_cli(spec, prompt, timeout_seconds, include_dirs)
             cost = 0.0
         elif spec.routing == "openrouter":
             content, cost = _fire_openrouter(spec, prompt, timeout_seconds)
@@ -204,6 +207,80 @@ def _fire_gemini_cli(
     if include_dirs:
         args.extend(["--include-directories", ",".join(include_dirs)])
     return _run_subprocess(args, _wrap_with_system(prompt), spec.name, timeout)
+
+
+# ---------- Kimi Code CLI path ----------
+
+
+def _fire_kimi_cli(
+    spec: TheoristSpec,
+    prompt: str,
+    timeout: int,
+    include_dirs: tuple[str, ...] = (),
+) -> str:
+    """Fire Kimi Code CLI in one-shot prompt mode.
+
+    Kimi Code 0.20.x exposes `kimi -p <prompt>` for non-interactive runs and
+    `--output-format stream-json` for machine-readable output. The stream also
+    includes metadata such as the resume hint; only assistant content belongs
+    in council artifacts, so we parse and retain assistant chunks.
+
+    `kimi-default` / `default` are sentinels meaning "use Kimi Code's
+    configured default_model"; operator-specified aliases are passed through
+    with `-m`. Kimi exposes no effort flag, so `spec.effort` is recorded only.
+    """
+    exe = _resolve_binary(
+        "kimi",
+        "kimi-cli not on PATH. Install Kimi Code and run `kimi login` first.",
+    )
+    wrapped = _wrap_with_system(prompt)
+    if len(wrapped) > 30000:
+        raise TheoristFailure(
+            spec.name,
+            f"prompt is {len(wrapped)} chars; kimi passes it as a command-line "
+            "argument and Windows caps the command line near 32k. Trim the "
+            "grounding preamble or split the council question.",
+        )
+
+    args = [
+        exe,
+        "-p",
+        wrapped,
+        "--output-format",
+        "stream-json",
+    ]
+    if spec.model.lower() not in {"default", "default_model", "kimi-default"}:
+        args.extend(["-m", spec.model])
+    for d in include_dirs:
+        args.extend(["--add-dir", d])
+
+    out = _run_subprocess(args, "", spec.name, timeout)
+    content = _parse_kimi_stream_json(out).strip()
+    if not content:
+        raise TheoristFailure(spec.name, "kimi returned empty assistant content")
+    return content
+
+
+def _parse_kimi_stream_json(stdout: str) -> str:
+    """Extract assistant text from Kimi's line-delimited JSON stream."""
+    chunks: list[str] = []
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            # If Kimi ever falls back to text despite the requested format,
+            # keep non-resume lines rather than dropping the model response.
+            if not line.startswith("To resume this session:"):
+                chunks.append(line)
+            continue
+        if event.get("role") == "assistant":
+            content = event.get("content")
+            if isinstance(content, str) and content:
+                chunks.append(content)
+    return "\n".join(chunks)
 
 
 # ---------- Antigravity (agy) ConPTY path ----------

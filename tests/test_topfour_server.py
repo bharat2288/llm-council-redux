@@ -103,6 +103,7 @@ class TestDefaultsEndpoint:
     def test_each_known_mode_round_trips(self, client) -> None:
         for mode in (
             "free-3-model-with-agy",
+            "free-4-model-with-kimi",
             "free-3-model-with-gemini-cli",
             "free-2-model",
             "standard-paid",
